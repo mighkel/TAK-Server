@@ -3,13 +3,21 @@ These are just notes for now.  As I started writing, I got too far into the weed
 Split this into multiple docs.
 
 "So, you want to run a TAK Server?"
+
 Use case.
+
   Personal?
+  
   Public safety?
+  
   Non-profits?
+  
 Budget.
+
 Experience.
+
 Pain tolerance.
+
 
 
 Doing away with the question of on-metal vs VPS.  Just going to cover VPS here.
@@ -24,21 +32,35 @@ Really though, containers allow you to start from a particular operating system,
 
 
 First, let's flesh out the order of operations.
+
 Access to TAK Server software on tak.gov
+
 Purchase a VPS
+
 Setup VPS
+
   Choose OS
+  
   Secure it
+  
   Setup SSH
+  
   Setup firewall
+  
   Setup containers (LXC/LXD)
+  
   Container routing (HAProxy)
+  
 Install TAK Server
+
 Connect users
+
 Administer TAK Server
 
 
+
 So.... I got questions!
+
 
 Where in this order do certs go?
 
@@ -55,8 +77,11 @@ Where in this order do certs go?
 BASIC CHOICES
 
 Choose a provider.  I'm going with SSD Nodes, based on a recommendation in the TAK community.
+
 Choose a plan.      I went with a deal on a G6 Performance+ Plan 64GB RAM 1200GB NVMe.
+
 Choose your OS.     Ubuntu Server 20.04 LTS
+
 
 
 ++++++++++++++++++++
