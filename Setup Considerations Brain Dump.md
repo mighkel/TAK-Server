@@ -97,6 +97,7 @@ $ apt autoremove
 ++++++++++++++++++++
 
 SECURITY
+
 Create a new user with root privileges.
 Make sure that the new user can log in over SSH using a public-private key pair.
 Make sure that root user can’t login over SSH.
