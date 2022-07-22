@@ -1,4 +1,4 @@
-VPS Setup Notes
+VPS setup notes based on SSD Nodes instance, but it should work on other providers with minor mods.
 
 ++++++++++++++++++++
 
@@ -8,6 +8,7 @@ Locate and remember your public IP address.
 Can generally get it from your VPS dashboard.
 
 ++++++++++++++++++++
+
 BASICS
 
 Update the distro and packages.
@@ -17,6 +18,7 @@ $ apt update && apt upgrade -y
 $ apt autoremove
 
 ++++++++++++++++++++
+
 SECURITY
 Create a new user with root privileges.
 Make sure that the new user can log in over SSH using a public-private key pair.
@@ -33,6 +35,7 @@ $ login USER
 $ sudo apt update
 
 ++++++++++++++++++++
+
 OPTIONAL RUN SUDO WITHOUT PASSWORD EVERY TIME
 
 $ visudo
@@ -42,6 +45,7 @@ Add the following to the end:
 USER ALL=(ALL) NOPASSWD:ALL
 
 ++++++++++++++++++++
+
 ADD SSH KEYS
 
 (https://blog.ssdnodes.com/blog/connecting-vps-ssh-security/)
@@ -51,6 +55,7 @@ Add public SSH key by editing:
 ~/.ssh/authorized_keys
 
 ++++++++++++++++++++
+
 DISABLE ROOT LOGIN
 
 Only after confirming your new user can login via SSH and perform sudo actions.
@@ -62,6 +67,7 @@ PasswordAuthentication no
 PermitEmptyPasswords no
 
 ++++++++++++++++++++
+
 ENABLE FIREWALL
 
 $ sudo ufw allow ssh
@@ -72,6 +78,7 @@ $ sudo ufw enable
 * add port for rtsp
 
 ++++++++++++++++++++
+
 INSTALL ESSENTIALS
 
 Docker
