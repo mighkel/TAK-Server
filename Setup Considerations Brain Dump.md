@@ -149,9 +149,13 @@ PermitEmptyPasswords no
 ENABLE FIREWALL
 
 $ sudo ufw allow ssh
+
 $ sudo ufw allow http https
+
 $ sudo ufw allow 8089 8443
+
 $ sudo ufw enable
+
 
 * add port for rtsp
 
