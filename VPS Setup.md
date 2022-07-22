@@ -1,6 +1,7 @@
 VPS Setup Notes
 
 ++++++++++++++++++++
+
 PURCHASE VPS
 
 Locate and remember your public IP address.
