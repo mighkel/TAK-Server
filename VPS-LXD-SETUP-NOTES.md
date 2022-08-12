@@ -145,7 +145,9 @@ One important command, and one of the main reasons that containers are so awesom
 $ `lxc snapshot [container] [snapshot name]`  
   
 Use snapshot often, at least at every successful install step or configuration change, on every container.  
-
+That way, if you dick something up, you don't have to spend hours getting back to the last-known-good configuration.  
+This is especially useful when you get to the TAK Server stuff.
+  
   
 **10 ADD USER TO LXD GROUP**  
 ---  
