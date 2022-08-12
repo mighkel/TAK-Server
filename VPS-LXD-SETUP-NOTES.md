@@ -136,6 +136,14 @@ https://blog.ssdnodes.com/blog/linux-containers-lxc-haproxy/
 $ `sudo install zfsutils-linux`  
 $ `sudo lxd init`  
   
+Side Note:  I have a couple of cheat sheets with groups of commands.  One of them is LXC commands.  
+One important command, and one of the main reasons that containers are so awesome, is:  
+  
+$ `lxc snapshot [container] [snapshot name]`  
+  
+Use snapshot often, at least at every successful install step or configuration change, on every container.  
+
+  
 **10 ADD USER TO LXD GROUP**  
 ++++++++++++++++++++  
   
@@ -201,16 +209,108 @@ $ `apt install haproxy`
   
 $ `sudo nano /etc/haproxy/haproxy.cfg`  
   
+Here's a sanitized version of my configuration file, the way it sits now.  
+It may be wonky, but it actually is working.
   
-  
- **More to come soon, including sample HAProxy config.  I just need to sanitize my working copy.
+```
+#frontends
+
+#http in, This is for the web (Apache) server on the "web" container.  It has been working. Yay!
+
+frontend http-in
+        mode http
+        bind 0.0.0.0:80
+        bind 0.0.0.0:8000
+        bind 0.0.0.0:8080
+        bind 0.0.0.0:8087
+
+        acl DOMAIN-TLD-acl hdr(host) -i DOMAIN.TLD
+        acl DOMAIN-TLD-acl hdr(host) -i web.DOMAIN.TLD
+        acl tak-DOMAIN-TLD-acl hdr(host) -i tak.DOMAIN.TLD
+
+        use_backend DOMAIN-server-1 if DOMAIN-TLD-acl
+        use_backend DOMAIN-server-2 if tak-DOMAIN-TLD-acl
+
+        default_backend DOMAIN-server-1
+        
+#https in, Also for the web server.  I have not generated or plugged-in any certs yet.  Not really my priority rn.  This is just here for later.
+
+frontend https-in
+        mode tcp
+        bind 0.0.0.0:443
+        tcp-request inspect-delay 5s
+        tcp-request content accept if { req.ssl_hello_type 1 }
+
+        acl DOMAIN-TLD-ssl-acl req.ssl_sni -i DOMAIN.TLD
+        acl DOMAIN-TLD-ssl-acl req.ssl_sni -i web.DOMAIN.TLD
+
+        use_backend DOMAIN-ssl-server-1 if DOMAIN-TLD-ssl-acl
+
+        default_backend DOMAIN-ssl-server-1
+
+#Here's the whole point of this exercise.  Connect to the tak server via TLS/SSL.  Subdomain is setup as tak.DOMAIN.TLD
+
+frontend tak-server
+        mode tcp
+        bind 0.0.0.0:8443
+        tcp-request inspect-delay 5s
+        tcp-request content accept if { req.ssl_hello_type 1 }
+
+        acl tak-DOMAIN-TLD-ssl-acl req.ssl_sni -i tak.DOMAIN.TLD
+
+        use_backend tak-DOMAIN-TLD-ssl-server-1 if tak-DOMAIN-TLD-ssl-acl
+
+        default_backend tak-DOMAIN-TLD-ssl-server-1
+        
+frontend tak-client
+        mode tcp
+        bind 0.0.0.0:8089
+        tcp-request inspect-delay 5s
+        tcp-request content accept if { req.ssl_hello_type 1 }
+
+        acl tak-DOMAIN-TLD-ssl-acl req.ssl_sni -i tak.DOMAIN.TLD
+
+        use_backend takc-DOMAIN-TLD-ssl-server-1 if tak-DOMAIN-TLD-ssl-acl
+
+        default_backend takc-DOMAIN-TLD-ssl-server-1
+
+# Backends
+backend DOMAIN-server-1
+        mode http
+        server web-DOMAIN-TLD 10.13.240.56:80
+
+backend DOMAIN-server-2
+        mode http
+        server tak-DOMAIN-TLD 10.13.240.149:8080
+
+backend DOMAIN-ssl-server-1
+        mode tcp
+        option ssl-hello-chk
+        server web-DOMAIN-TLD 10.13.240.56:443
+
+backend tak-DOMAIN-TLD-ssl-server-1
+        mode tcp
+        option ssl-hello-chk
+        server tak-DOMAIN-TLD 10.13.240.149:8443
+
+backend takc-DOMAIN-TLD-ssl-server-1
+        mode tcp
+        option ssl-hello-chk
+        server takc-DOMAIN-TLD 10.13.240.149:8089
+```    
   
 **15 INSTALL WEB SERVER ON WEB CONTAINER**   
-++++++++++++++++++++    
+++++++++++++++++++++  
+  
+I went with LAMP (Apache) stack on my web server.  More info to come.  
   
 **16 INSTALL TAK SERVER ON TAK CONTAINER**   
 ++++++++++++++++++++    
   
+I might just link to another doc here.  We'll see.  It's well-covered elswhere, and I don't recall anything unique to containers tha isn't already covered above, but I'm sure there is, especially when getting into certs.
+  
 **17 ADD TAK CERTS TO HAPROXY**   
 ++++++++++++++++++++    
   
+I haven't had to so far, but I'm only using the self-signed certs, and they're working.  I'll leave this here for when I go down the LetsEncrypt path.  
+That's just something I haven't dug into yet.
