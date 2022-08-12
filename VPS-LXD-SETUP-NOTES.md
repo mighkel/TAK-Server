@@ -1,3 +1,6 @@
+00 Introduction  
+---
+  
 These are just some notes I'm taking along the way as I learn more about networking and installing TAK Servers.  
 Specifically, this doc outlines setting up a VPS with LXC/LXD containers with HAProxy for reverse proxy routing.  
 **To skip all of my yammering, head on down to Section 01**  
@@ -26,7 +29,7 @@ Ok, with that crap out of the way, let's get to the good stuff...
   
 
 **01 PURCHASE VPS**  
-++++++++++++++++++++
+---
   
 I went with SSD Nodes, *G6 Performance+ 64GB RAM [B92]*  
 Server type:  Virtual Machine  
@@ -39,14 +42,14 @@ This is seriously overkill for a TAK Server that doesn't serve thousands of heav
 I just have plans for running apps that will consume a bit more.  If you're curious, a couple of those apps are Nextcloud and OpenDroneMap (WebODM).   
   
 **02 MANAGE DNS (OPTIONAL)**  
-++++++++++++++++++++  
+---  
   
 Create DNS records for any subdomains that need routing.  
 SSD Nodes Dashboard  
-     Domains  
-          Manage DNS  
+-Domains  
+ -Manage DNS  
 Find your domain and edit it.  
-Add Record  
+ -Add Record  
   
 Fill out the form for your subdomain to create a new A record (or multiple).  
   
@@ -57,7 +60,7 @@ RDATA:	[MY PUBLIC IP ADDRESS] (of the host)
   
   
 **03 BASICS**  
-++++++++++++++++++++  
+---  
   
 Update the distro and packages.  
   
@@ -67,7 +70,7 @@ $ `apt autoremove`
   
   
 **04 SECURITY/SSH**  
-++++++++++++++++++++  
+---  
   
 Create a new user with root privileges.  
 Make sure that the new user can log in over SSH using a public-private key pair.  
@@ -83,7 +86,7 @@ $ `sudo apt update`
   
   
 **05 OPTIONAL RUN SUDO WITHOUT PASSWORD EVERY TIME**  
-++++++++++++++++++++  
+---  
   
 $ `visudo`  
   
@@ -93,7 +96,7 @@ Add the following to the end:
   
   
 **06 ADD SSH KEYS**  
-++++++++++++++++++++  
+---  
   
 (https://blog.ssdnodes.com/blog/connecting-vps-ssh-security/)  
   
@@ -103,7 +106,7 @@ $ `~/.ssh/authorized_keys`
   
   
 **07 DISABLE ROOT LOGIN**  
-++++++++++++++++++++  
+---  
   
 Only after confirming your new user can login via SSH and perform sudo actions.  
   
@@ -117,7 +120,7 @@ PermitEmptyPasswords no
   
   
 **08 ENABLE FIREWALL**  
-++++++++++++++++++++  
+---  
   
 $ `sudo ufw allow ssh`  
 $ `sudo ufw allow http https`  
@@ -129,7 +132,7 @@ $ `sudo ufw enable`
   
   
 **09 INSTALL/INIT LXC/LXD**  
-++++++++++++++++++++  
+---  
   
 https://blog.ssdnodes.com/blog/linux-containers-lxc-haproxy/  
   
@@ -145,13 +148,13 @@ Use snapshot often, at least at every successful install step or configuration c
 
   
 **10 ADD USER TO LXD GROUP**  
-++++++++++++++++++++  
+---  
   
 $ `usermod -aG lxd [USER]`  
   
   
 **11 CREATE CONTAINERS**  
-++++++++++++++++++++  
+---  
   
 $ `lxc launch images:ubuntu/20.04 [HAProxy]`  
 $ `lxc launch images:ubuntu/20.04 [web]`  
@@ -159,7 +162,7 @@ $ `lxc launch images:centos/7 [tak]`
   
   
 **12 GET IP ADDRESSES FOR ROUTING**  
-++++++++++++++++++++  
+---  
   
 $ `ifconfig`  
   
@@ -179,7 +182,7 @@ Example:
 ```  
   
 **13 SETUP ROUTING**  
-++++++++++++++++++++  
+---  
   
 Forward traffic to the HAProxy container.   
   
@@ -195,13 +198,13 @@ $ `sudo apt-get install iptables-persistent`
   
   
 **14 CONFIGURE HAPROXY CONTAINER**   
-++++++++++++++++++++  
+---  
   
 Login to container  
   
 $ `lxc exec HAProxy -- bash`  
   
-(Ctrl+D or Cmd+D to exit)  
+(Ctrl+D or Cmd+D to exit the container and back to the host)  
   
 $ `apt update && apt upgrade -y`  
   
@@ -210,7 +213,7 @@ $ `apt install haproxy`
 $ `sudo nano /etc/haproxy/haproxy.cfg`  
   
 Here's a sanitized version of my configuration file, the way it sits now.  
-It may be wonky, but it actually is working.
+It may be wonky, but it actually *is* working.
   
 ```
 #frontends
@@ -300,17 +303,25 @@ backend takc-DOMAIN-TLD-ssl-server-1
 ```    
   
 **15 INSTALL WEB SERVER ON WEB CONTAINER**   
-++++++++++++++++++++  
+---  
   
-I went with LAMP (Apache) stack on my web server.  More info to come.  
+I went with the LAMP stack (Apache) on my web server.  
+More info to come, but I mention this because getting the web server to a point of being able to punch in my domain name in a browser, and successfully hit the index.html on my web container was a significant milestone, an indicator that I didn't screw everything up!  
+  
+The important part is that web servers are cake.  There's a ton of info out there to configure and troubleshoot it, so a monkey can get there.  
+If you can't connect to a web server in a container, forget setting up a successful TAK Server!  
+Beat your head against the wall on the *easy* stuff first, and get a *win* in there before getting to the harder stuff.  
   
 **16 INSTALL TAK SERVER ON TAK CONTAINER**   
-++++++++++++++++++++    
+---    
   
-I might just link to another doc here.  We'll see.  It's well-covered elswhere, and I don't recall anything unique to containers tha isn't already covered above, but I'm sure there is, especially when getting into certs.
+I might just link to another doc here.  We'll see.  It's well-covered elsewhere, and I don't recall anything unique to containers that isn't already covered above, but I'm sure there is, especially when getting into certs.  
   
 **17 ADD TAK CERTS TO HAPROXY**   
-++++++++++++++++++++    
+---    
   
-I haven't had to so far, but I'm only using the self-signed certs, and they're working.  I'll leave this here for when I go down the LetsEncrypt path.  
-That's just something I haven't dug into yet.
+I haven't had to so far, but I'm only using the self-signed certs, and they're passing-thru and working.  
+I'll leave this here for when I go down the LetsEncrypt path.  
+That's just something I haven't dug into yet.  
+  
+  
