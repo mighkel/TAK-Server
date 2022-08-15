@@ -136,7 +136,7 @@ $ `sudo ufw enable`
   
 https://blog.ssdnodes.com/blog/linux-containers-lxc-haproxy/  
   
-$ `sudo install zfsutils-linux`  
+$ `sudo apt install zfsutils-linux`  
 $ `sudo lxd init`  
   
 Side Note:  I have a couple of cheat sheets with groups of commands.  One of them is LXC commands.  
