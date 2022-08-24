@@ -220,7 +220,7 @@ It may be wonky, but it actually *is* working.
 ```
 #frontends
 
-#http in, This is for the web (Apache) server on the "web" container.  It has been working. Yay!
+#http in, This is for the web (Apache) server on the "web" container.
 
 frontend http-in
         mode http
