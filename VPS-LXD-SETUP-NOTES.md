@@ -12,7 +12,7 @@ Purpose of publishing this here:
   
 If you're anything like me, you have the interest and some very basic linux, webdev, and networking experience; and your interest in the TAK ecosystem has sparked an urgency to accellerate taking that learning to the next level.  
   
-In my case, I'm an officer on a small rural (read: non-taxing, *very* low budget) fire department, with a full-time job outside of public safety, who wants to learn the TAK ecosystem, and be able to set it up and teach it to other public safety orgs around our county.  
+In my case, I'm an officer on a small rural (read: non-taxing, *very* low budget) fire department, with a full-time job outside of public safety, who wants to learn the TAK ecosystem, and be able to set it up and teach it to other public safety orgs around our county.  I'm also enthusiastic about the self-hosting ecosystems that are out there, and wish to upgrade my skills to implement some of the services that are out there.  
 
 Is there an easier way to get a TAK Server going on a VPS?  
 You bet!  
@@ -33,7 +33,7 @@ Ok, with that crap out of the way, let's get to the good stuff...
   
 I went with SSD Nodes, *G6 Performance+ 64GB RAM [B92]*  
 Server type:  Virtual Machine  
-Platform:  Ubuntu20.04  
+Platform:  Ubuntu 20.04 LTS  
 vCPUs:  12  
 Memory:  64 GB  
 Disk:  1200 GB  
@@ -61,6 +61,8 @@ RDATA:	[MY PUBLIC IP ADDRESS] (of the host)
   
 **03 BASICS**  
 ---  
+  
+I'm doing all of this from a Windows 10 laptop, so to interact with my server I'm using Putty for command line, Puttygen for SSH cert, and WinSCP for file transfer.  There are plenty of good tutorials out there to get that setup.  I'll try and post a couple links here if I remember.  
   
 Update the distro and packages.  
   
@@ -122,13 +124,11 @@ PermitEmptyPasswords no
 **08 ENABLE FIREWALL**  
 ---  
   
-$ `sudo ufw allow ssh`  
+$ `sudo ufw allow ssh`  (of all of these, if you forget this line before you enable the firewall, you'll lock yourself out of SSH!)  
 $ `sudo ufw allow http https`  
 $ `sudo ufw allow 8089`  
-$ `sudo ufw allow 8443`  
+$ `sudo ufw allow 8443`      
 $ `sudo ufw enable`  
-  
-* add port for rtsp when determined  
   
   
 **09 INSTALL/INIT LXC/LXD**  
@@ -303,11 +303,26 @@ backend takc-DOMAIN-TLD-ssl-server-1
         option ssl-hello-chk
         server takc-DOMAIN-TLD 10.13.240.149:8089
 ```    
+ 
+A few ways to check your proxy configuration:
+ 
+$ `/usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -c` 
+ 
+$ `sudo systemctl status haproxy.service -l --no-pager` 
+ 
+$ `sudo journalctl -u haproxy.service --since today --no-pager` 
+ 
+$ `sudo haproxy -c -f /etc/haproxy/haproxy.cfg` 
+ 
+$ `sudo tail -n 2 /var/log/haproxy.log` 
+ 
+
   
 **15 INSTALL WEB SERVER ON WEB CONTAINER**   
 ---  
   
-I went with the LAMP stack (Apache) on my web server.  
+I went with the LAMP stack (Apache) on my web server. 
+  
 More info to come, but I mention this because getting the web server to a point of being able to punch in my domain name in a browser, and successfully hit the index.html on my web container was a significant milestone, an indicator that I didn't screw everything up!  
   
 The important part is that web servers are cake.  There's a ton of info out there to configure and troubleshoot it, so a monkey can get there.  
@@ -317,12 +332,28 @@ Beat your head against the wall on the *easy* stuff first, and get a *win* in th
 **16 INSTALL TAK SERVER ON TAK CONTAINER**   
 ---    
   
-I might just link to another doc here.  We'll see.  It's well-covered elsewhere, and I don't recall anything unique to containers that isn't already covered above, but I'm sure there is, especially when getting into certs.  
+I might just make and link to another doc here.  We'll see.  It's well-covered elsewhere, and I don't recall anything unique to containers that isn't already covered above, but I'm sure there is, especially when getting into certs.  
+  
+Here is some of the container-specific info though.  
+  
+I haven't been able to push from my local machine directly to the containers yet, so I use WinSCP to transfer the RPM to the host, and then push it to the container.   
+  
+Starting from the temp folder on the host, push the RPM to the container:  
+  
+~$ `cd /home/[USER]/xfer/`  
+~/xfer$ `lxc file push takserver-[X.X]-RELEASE[XX].noarch.rpm tak/root/`  
+  
+Access the container:  
+  
+$ `lxc exec tak bash`  
+
+Locate the RPM in the root directory, and follow the TAK Server Guide to install.  
+  
   
 **17 ADD TAK CERTS TO HAPROXY**   
 ---    
   
-I haven't had to so far, but I'm only using the self-signed certs, and they're passing-thru and working.  
+(placeholder)  I haven't had to so far, but I'm only using the self-signed certs, and they're passing-thru and working.  
 I'll leave this here for when I go down the LetsEncrypt path.  
 That's just something I haven't dug into yet.  
   
