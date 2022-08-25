@@ -39,7 +39,8 @@ Memory:  64 GB
 Disk:  1200 GB  
   
 This is seriously overkill for a TAK Server that doesn't serve thousands of heavy users.  
-I just have plans for running apps that will consume a bit more.  If you're curious, a couple of those apps are Nextcloud and OpenDroneMap (WebODM).   
+I just have plans for running apps that will consume a bit more.  
+If you're curious, a couple of those apps are Nextcloud (update: succeeded) and OpenDroneMap/WebODM (update: failed, so far).   
   
 **02 MANAGE DNS (OPTIONAL)**  
 ---  
