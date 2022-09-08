@@ -40,7 +40,7 @@ Disk:  1200 GB
   
 This is seriously overkill for a TAK Server that doesn't serve thousands of heavy users.  
 I just have plans for running apps that will consume a bit more.  
-If you're curious, a couple of those apps are Nextcloud (update: succeeded) and OpenDroneMap/WebODM (update: failed, so far).   
+If you're curious, here are a few examples: Apache web server (success), Nextcloud (success), TAK Server (success), OpenDroneMap/WebODM (failed, so far), and rtsp (failed, but getting close).   
   
 **02 MANAGE DNS (OPTIONAL)**  
 ---  
