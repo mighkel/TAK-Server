@@ -41,10 +41,6 @@ echo "Install GDown"
 
 pip install gdown
 
-echo "Create and goto download folder"
-mkdir /home/atak/downloads
-cd /home/tak/downloads
-
 echo "Google Drive TAK Server rpm download"
 gdown 1-lYWLTCblFbPmJkqDAwPolu6ZkkL4ISg 
 
@@ -99,9 +95,9 @@ sudo firewall-cmd --reload
 
 echo "Install Complete, creating tak certificates!!"
 echo "copying certificate scripts to correct locations"
-cp /home/tak/downloads/createTakCerts.sh /opt/tak/certs
-cp /home/tak/downloads/takUserCreateCerts_doNotRunAsRoot.sh /opt/tak/certs
-cp /home/tak/downloads/takserver_createLECerts.sh /opt/tak/certs
+cp createTakCerts.sh /opt/tak/certs
+cp takUserCreateCerts_doNotRunAsRoot.sh /opt/tak/certs
+cp takserver_createLECerts.sh /opt/tak/certs
 
 ##allow script execution
 sudo chmod +x /opt/tak/certs/createTakCerts.sh
