@@ -99,13 +99,14 @@ sudo firewall-cmd --reload
 
 echo "Install Complete, creating tak certificates!!"
 echo "copying certificate scripts to correct locations"
-cp createTakCerts.sh /opt/tak/certs
-cp takUserCreateCerts_doNotRunAsRoot.sh /opt/tak/certs
+cp /home/tak/downloads/createTakCerts.sh /opt/tak/certs
+cp /home/tak/downloads/takUserCreateCerts_doNotRunAsRoot.sh /opt/tak/certs
+cp /home/tak/downloads/takserver_createLECerts.sh /opt/tak/certs
 
 ##allow script execution
 sudo chmod +x /opt/tak/certs/createTakCerts.sh
 sudo chmod +x /opt/tak/certs/takUserCreateCerts_doNotRunAsRoot.sh
-sudo chmod +x takserver_createLECerts.sh
+sudo chmod +x /opt/tak/certs/takserver_createLECerts.sh
 
 echo "running certificate script"
 sudo /opt/tak/certs/createTakCerts.sh
