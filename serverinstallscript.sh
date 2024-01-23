@@ -1,126 +1,111 @@
 #!/bin/bash
-# Update OS
-sudo yum update -y
+##This will install Tak V5.0 on Rocky Linux 8, create a Root CA and Intermediate (signing) CA, enable certificate enrollment, enable channels, and create an admin and user .p12 certificate
+##The /opt/tak/certs/files/admin.p12 certificate needs to be installed into firefox/chrome as a user certificate in order to conenct to the WebGUI as an admin
 
-# Increase system limit for number of concurrent TCP connections
+echo "Create atak user"
+sudo useradd -m -p atak wolfTAK atak
+sudo -aG wheel atak
+
+echo "Increase MAX connections"
 echo -e"* soft nofile 32768\n* hard nofile 32768" |sudo  tee --append /etc/security/limits.conf>/dev/null
 
-# Install EPEL
+echo "Install epel-release"
 sudo yum install epel-release -y
+echo "Install epel-release complete"
 
-# Install Nano
-sudo dnf install nano -y
+echo "Install Nano"
+sudo yum install nano -y
+echo "Install Nano complete"
 
-# Install PostgreSQL and PostGIS packages
-sudo dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+echo "Install Postgres"
+sudo yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+echo "Install Postgres Complete"
 
-# Update
+echo "Update Packages"
 sudo dnf update -y
+echo "Update Complete"
 
-# Enable PowerTools
-sudo dnf config-manager --set-enabled powertools
-
-# Disable system default PostgreSQL
-sudo dnf -qy module disable postgresql
-
-echo "If prompted, press y and then enter to import the GPG key"
-
-# Install PostgreSQL 15
-sudo dnf install -y postgresql15-server
-
+echo "Install Java 17"
 # Install Java 17
 sudo yum install java-17-openjdk-devel -y
+echo "Install Java 17 complete"
 
-# Install Python and PIP
-sudo dnf install python39 -y
-
-sudo dnf install python39-pip
-
-# Upgrade PIP
+echo "Install Python and PIP"
+sudo yum install python39 -y
+sudo yum install python39-pip
 sudo pip3 install --upgrade pip
 
 wait
 
-# Install GDown
+echo "Install GDown"
 
 pip install gdown
 
-# Begin Google Drive TAK Server rpm download
+echo "Create and goto download folder"
+mkdir /home/atak/downloads
+cd /home/tak/downloads
 
+echo "Google Drive TAK Server rpm download"
 gdown 1-lYWLTCblFbPmJkqDAwPolu6ZkkL4ISg 
 
-# Begin Google Drive TAK Server public gpg key download
-
+echo "Google Drive gpg key download"
 gdown 151lKtT1xfj8lyeZJ8VMRyxgK1X8-8CVv 
 
+echo "Google Drive takusercreatecerts script download"
+gdown 1-oJueGUAKFE--qxBsaJTFGWShCo5n6-U 
 
-# Begin install of TAK Server
+echo "Google Drive createtakcerts script download"
+gdown 1-tgSwWViL8O0iM_7qTs0uDblCnANOC6C 
+
+echo "Google Drive createletsencryptcerts download"
+gdown 1-p9ZVl1IULIFOozm2UvA1cT_3kFNeN2c 
+
+echo "Begin install of TAK Server"
 cd
 sudo yum install takserver-5.0-RELEASE34.noarch.rpm -y
 
-# Policy install
-
+echo "Policy install"
 sudo yum install checkpolicy
 cd /opt/tak
 sudo ./apply-selinux.sh
 sudo semodule -l | grep takserver
 
-# Database install
-
+echo "Configuring TAK database"
 sudo /opt/tak/db-utils/takserver-setup-db.sh
+echo "daemon-reload"
 sudo systemctl daemon-reload
 
-# Move cert-metadata.sh file to /opt/tak/certs
+#echo "Move cert-metadata.sh file to /opt/tak/certs"
+#cd
+#sudo mv -f ./TAK-Server/cert-metadata.sh /opt/tak/certs/cert-metadata.sh
 
-# cd
-
-# sudo mv -f ./TS-Install/cert-metadata.sh /opt/tak/certs/cert-metadata.sh
-
-# Start TAK Server Service
-
+echo "Start TAK Server Service"
 sudo systemctl start takserver
 
-# Enable TAK Server auto-start
-
+echo "Enable TAK Server auto-start"
 sudo systemctl enable takserver
 
-# Install Firewalld
-
+echo "Install Firewalld"
 sudo yum install firewalld
 sudo systemctl start firewalld
 sudo systemctl enable firewalld
 sudo systemctl status firewalld
 
-# Configure Firewalld
-
-sudo firewall-cmd --zone=public --add-port 8080/tcp --permanent
-sudo firewall-cmd --zone=public --add-port 8088/tcp --permanent
-sudo firewall-cmd --zone=public --add-port 8089/tcp --permanent
-sudo firewall-cmd --zone=public --add-port 8443/tcp --permanent
-sudo firewall-cmd --zone=public --add-port 8444/tcp --permanent
-sudo firewall-cmd --zone=public --add-port 8446/tcp --permanent
-sudo firewall-cmd --zone=public --add-port 9000/tcp --permanent
-sudo firewall-cmd --zone=public --add-port 9001/tcp --permanent
+echo "Configure Firewalld"
+sudo firewall-cmd --zone=public --permanent --add-port=8089/tcp
+sudo firewall-cmd --zone=public --permanent --add-port=8443/tcp
+sudo firewall-cmd --zone=public --permanent --add-port=8446/tcp
 sudo firewall-cmd --reload
 
-echo "********** INSTALLATION COMPLETE! **********"
-echo ""
-echo "**** CHECK NOBODY IS OVER YOUR SHOULDER ****"
-echo ""
-echo "Access your your TAK server via web browser"
-echo ""
-echo "http://[TAK Server IP]:8080/setup for initial setup"
-echo "|"
-echo "http://[TAK Server IP]:8446 unsecure connection"
-echo "|"
-echo " ---> requires admin account creation"
-echo ""
-echo "http://[TAK Server IP]:8443 secure connection"
-echo "|"
-echo " ---> requires certificate creation"
-echo "|"
-echo "Password must be a minimum of 15 characters including 1 uppercase, 1 lowercase, 1 number, and 1 special character from this list [-_!@#$%^&*(){}[]+=~`|:;<>,./?]."
-echo "|"
-echo "sudo java -jar /opt/tak/utils/UserManager.jar usermod -A -p [create password] [adminusername]"
-echo "|"
-echo "sudo systemctl restart takserver"
+echo "Install Complete, creating tak certificates!!"
+echo "copying certificate scripts to correct locations"
+cp createTakCerts.sh /opt/tak/certs
+cp takUserCreateCerts_doNotRunAsRoot.sh /opt/tak/certs
+
+##allow script execution
+sudo chmod +x /opt/tak/certs/createTakCerts.sh
+sudo chmod +x /opt/tak/certs/takUserCreateCerts_doNotRunAsRoot.sh
+sudo chmod +x takserver_createLECerts.sh
+
+echo "running certificate script"
+sudo /opt/tak/certs/createTakCerts.sh
