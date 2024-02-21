@@ -3,10 +3,10 @@
 COUNTRY=US
 STATE=ID
 CITY=BOISE
-ORGANIZATION=WLPNW
+ORGANIZATION=MYORG
 ORGANIZATIONAL_UNIT=TAKUSERS
 
-CAPASS=${CAPASS:-wolfpnwtak}
+CAPASS=${CAPASS:-atakatak}
 PASS=${PASS:-$CAPASS}
 
 ## subdirectory to put all the actual certs and keys in
