@@ -42,19 +42,19 @@ echo "Install GDown"
 pip install gdown
 
 echo "Google Drive TAK Server rpm download"
-gdown 1-lYWLTCblFbPmJkqDAwPolu6ZkkL4ISg 
+gdown [DRIVE-TAKSERVER-FILE-ID] 
 
 echo "Google Drive gpg key download"
-gdown 151lKtT1xfj8lyeZJ8VMRyxgK1X8-8CVv 
+gdown [DRIVE-GPG KEY-FILE-ID] 
 
 echo "Google Drive takusercreatecerts script download"
-gdown 1-oJueGUAKFE--qxBsaJTFGWShCo5n6-U 
+gdown [DRIVE-CREATEUSERSSCRIPT-FILE-ID] 
 
 echo "Google Drive createtakcerts script download"
-gdown 1-tgSwWViL8O0iM_7qTs0uDblCnANOC6C 
+gdown [DRIVE-CREATECERTSSCRIPT-FILE-ID] 
 
 echo "Google Drive createletsencryptcerts download"
-gdown 1-p9ZVl1IULIFOozm2UvA1cT_3kFNeN2c 
+gdown [DRIVE-CREATELECERTSSCRIPT-FILE-ID] 
 
 echo "Begin install of TAK Server"
 cd
