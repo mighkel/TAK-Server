@@ -161,7 +161,7 @@ $ `usermod -aG lxd [USER]`
   
 $ `lxc launch images:ubuntu/20.04 [HAProxy]`  
 $ `lxc launch images:ubuntu/20.04 [web]`  
-$ `lxc launch images:centos/7 [tak]`  
+$ `lxc launch images:rocky/8 [tak]`  
   
   
 **12 GET IP ADDRESSES FOR ROUTING**  
