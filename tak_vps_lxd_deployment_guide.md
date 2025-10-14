@@ -119,6 +119,9 @@ sudo nano /home/takadmin/.ssh/authorized_keys
 # Paste your public SSH key (the same one you used when provisioning the VPS), then:
 #   - Press Ctrl+O, Enter to save
 #   - Press Ctrl+X to exit
+# Note: If you are copying from the PuTTY-generated key, you will need to do a little conversion.
+# The easiest way:
+# In PuTTYGen, select “Conversions → Export OpenSSH key” or copy from “Public key for pasting into OpenSSH authorized_keys file.”
 
 # Set correct permissions:
 sudo chmod 600 /home/takadmin/.ssh/authorized_keys
