@@ -89,7 +89,15 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 ```bash
 # Update & basic tools
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl wget git unzip lxd snapd ufw fail2ban
+sudo apt install -y curl wget git unzip snapd ufw fail2ban
+sudo snap install lxd
+sudo lxd init --auto
+
+# Optional sanity check
+newgrp lxd
+lxd version
+
+# Should see an output like 6.0.0 
 
 # Create admin user (if not already created), add to sudo
 sudo adduser adminuser
