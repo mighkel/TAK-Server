@@ -195,10 +195,10 @@ If you prefer bridged networking (bridge to host interface for public IPs), re-r
 We'll create 4 containers. Adjust names to your naming standard.
 
 ```bash
-lxc launch images:ubuntu/22.04 haproxy
-lxc launch images:ubuntu/22.04 tak
-lxc launch images:ubuntu/22.04 web
-lxc launch images:ubuntu/22.04 rtsptak
+lxc launch ubuntu:22.04 haproxy
+lxc launch ubuntu:22.04 tak
+lxc launch ubuntu:22.04 web
+lxc launch ubuntu:22.04 rtsptak
 ```
 
 Check IPs:
