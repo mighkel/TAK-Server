@@ -13,7 +13,7 @@
 5. Detailed step-by-step (commands you can copy/paste)
    - Host provisioning & hardening
    - LXD init and networking
-   - Create containers: haproxy, tak, web, media
+   - Create containers: haproxy, tak, web, rtsptak
    - HAProxy config (full, with Let’s Encrypt + TAK passthru + RTSP)
    - Install TAK Server using myTeckNet installer (how to copy files, run it)
    - MediaMTX container setup and HAProxy RTSP forwarding
@@ -30,7 +30,7 @@
 
 This guide is targeted at a small public-safety sandbox deployment (county / volunteer fire department). Goals:
 
-- Multi-container LXD layout: `haproxy`, `tak`, `web`, `media`.
+- Multi-container LXD layout: `haproxy`, `tak`, `web`, `rtsptak`.
 - Keep onboarding simple for users (mission-package auto-config, client certs).
 - Reasonable security hardening while preserving easy onboarding (avoid VPN requirement).
 - Provide repeatable steps so you can later publish a public repo with templates.
@@ -51,7 +51,7 @@ Internet
                  +--- haproxy (reverse-proxy, TLS termination, SNI/tcp pass-through)
                  +--- tak (TAK Server installed via myTeckNet installer)
                  +--- web (Apache/Nginx for documentation / landing page)
-                 +--- media (MediaMTX for RTSP/SRT feeds)
+                 +--- rtsptak (MediaMTX for RTSP/SRT feeds)
 ```
 
 Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes connections to appropriate containers (TCP passthrough for TAK ports, HTTP for web, RTSP TCP/UDP to media).
@@ -61,7 +61,7 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 ## 3. Prerequisites (host & LXD)
 
 - SSDNodes VPS running Ubuntu 22.04 LTS (minimal install). Make sure you can SSH in.
-- Domain name with DNS A records for `tak.example.tld`, `web.example.tld`, `rtsp.example.tld` pointing to the VPS public IP.
+- Domain name with DNS A records for `tak.pinenut.tech`, `web.pinenut.tech`, `rtsptak.pinenut.tech` pointing to the VPS public IP.
 - LXD installed (snap) and basic knowledge of `lxc` commands. This guide uses `lxd`/`lxc` commands.
 - You already have `installTAK` (myTeckNet) files; place them where the guide indicates (we show commands to copy into the tak container).
 
@@ -71,11 +71,11 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 
 1. Provision host, create admin user, add SSH key, disable root password auth.
 2. Install and initialize LXD; create an LXD bridge or use `lxdbr0`.
-3. Launch containers: `haproxy`, `tak`, `web`, `media`.
+3. Launch containers: `haproxy`, `tak`, `web`, `rtsptak`.
 4. Configure container networking and firewall rules (host ufw and container ufw where applicable).
 5. Configure HAProxy and Certbot for TLS (or let `installTAK` manage LetsEncrypt inside TAK container as preferred).
 6. Install TAK Server inside `tak` container using myTeckNet `installTAK` script.
-7. Configure MediaMTX inside `media` container and add HAProxy routing for RTSP.
+7. Configure MediaMTX inside `rtsptak` container and add HAProxy routing for RTSP.
 8. Snapshot containers and configure backup cron jobs.
 
 ---
@@ -198,7 +198,7 @@ We'll create 4 containers. Adjust names to your naming standard.
 lxc launch images:ubuntu/22.04 haproxy
 lxc launch images:ubuntu/22.04 tak
 lxc launch images:ubuntu/22.04 web
-lxc launch images:ubuntu/22.04 media
+lxc launch images:ubuntu/22.04 rtsptak
 ```
 
 Check IPs:
@@ -211,7 +211,7 @@ Record the containers' internal IPs (e.g. 10.13.x.x) — we'll use them in HAPro
 
 ### 5.4 Prepare containers (common steps)
 
-Run these for each container (`haproxy`, `tak`, `web`, `media`). Replace `CONTAINER` with the container name.
+Run these for each container (`haproxy`, `tak`, `web`, `rtsptak`). Replace `CONTAINER` with the container name.
 
 ```bash
 lxc exec CONTAINER -- bash -c "apt update && apt upgrade -y"
@@ -263,7 +263,7 @@ defaults
 frontend http-in
     bind *:80
     mode http
-    acl host_web hdr(host) -i web.example.tld
+    acl host_web hdr(host) -i web.pinenut.tech
     use_backend web-backend if host_web
     default_backend web-backend
 
@@ -277,7 +277,7 @@ frontend tak-client
     mode tcp
     tcp-request inspect-delay 5s
     tcp-request content accept if { req.ssl_hello_type 1 }
-    acl host_tak req.ssl_sni -i tak.example.tld
+    acl host_tak req.ssl_sni -i tak.pinenut.tech
     use_backend tak-client-backend if host_tak
 
 backend tak-client-backend
@@ -291,7 +291,7 @@ frontend tak-server
     mode tcp
     tcp-request inspect-delay 5s
     tcp-request content accept if { req.ssl_hello_type 1 }
-    acl host_takreq req.ssl_sni -i tak.example.tld
+    acl host_takreq req.ssl_sni -i tak.pinenut.tech
     use_backend tak-server-backend if host_takreq
 
 backend tak-server-backend
@@ -306,12 +306,12 @@ frontend rtsp-in
     option tcplog
     tcp-request inspect-delay 5s
     acl host_rtsp req.ssl_sni -m found # SNI not used by RTSP; we match on IP/port here
-    default_backend media-backend
+    default_backend rtsptak-backend
 
-backend media-backend
+backend rtsptak-backend
     mode tcp
     option tcplog
-    server media 10.13.240.178:8554 check
+    server rtsptak 104.225.221.119:8554 check
 
 # Optionally add a stats endpoint
 listen stats
@@ -404,20 +404,20 @@ Add an index page with instructions for testers.
 
 ### 5.10 Media container: MediaMTX (RTSP)
 
-MediaMTX is an actively maintained RTSP server that serves RTSP/RTMP/SRT feeds. We'll set it up in `media` container.
+MediaMTX is an actively maintained RTSP server that serves RTSP/RTMP/SRT feeds. We'll set it up in `rtsptak` container.
 
 ```bash
 # On host, download latest MediaMTX release or use package in container
-lxc exec media -- bash -lc "apt update && apt install -y curl vim"
+lxc exec rtsptak -- bash -lc "apt update && apt install -y curl vim"
 # Create a directory and download binary
-lxc exec media -- mkdir -p /opt/mediamtx
+lxc exec rtsptak -- mkdir -p /opt/mediamtx
 # If you have the binary locally: lxc file push mediamtx binary path
 # Example to download inside container (replace URL with latest):
-lxc exec media -- bash -lc "cd /opt/mediamtx && curl -L -o mediamtx.tar.gz 'https://github.com/aler9/mediamtx/releases/download/v0.XX.X/mediamtx_v0.XX.X_linux_amd64.tar.gz' && tar xzf mediamtx.tar.gz"
+lxc exec rtsptak -- bash -lc "cd /opt/mediamtx && curl -L -o mediamtx.tar.gz 'https://github.com/bluenviron/mediamtx/releases/download/v1.15.2/mediamtx_v1.15.2_linux_amd64.tar.gz' && tar xzf mediamtx.tar.gz"
 
 # create systemd service
-lxc exec media -- bash -lc "cat >/etc/systemd/system/mediamtx.service <<'EOF'\n[Unit]\nDescription=MediaMTX\nAfter=network.target\n\n[Service]\nUser=root\nExecStart=/opt/mediamtx/mediamtx\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\nEOF"
-lxc exec media -- systemctl daemon-reload && systemctl enable --now mediamtx
+lxc exec rtsptak -- bash -lc "cat >/etc/systemd/system/mediamtx.service <<'EOF'\n[Unit]\nDescription=MediaMTX\nAfter=network.target\n\n[Service]\nUser=root\nExecStart=/opt/mediamtx/mediamtx\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\nEOF"
+lxc exec rtsptak -- systemctl daemon-reload && systemctl enable --now mediamtx
 ```
 
 MediaMTX default listens on TCP 8554 for RTSP. We mapped haproxy backend to container port `8554` (or `8554` → `8554` mapping). Configure MediaMTX via its `mediamtx.yml` for stream auth or specific mount points.
@@ -476,7 +476,7 @@ Automate nightly snapshots for containers:
 ```bash
 #!/bin/bash
 TODAY=$(date +%F)
-for CT in tak haproxy web media; do
+for CT in tak haproxy web rtsptak; do
   /snap/bin/lxc snapshot ${CT} auto-${TODAY}
   # Optional: delete snapshots older than 14 days
   /snap/bin/lxc info ${CT} | grep "Snapshots:" -A20
@@ -523,7 +523,7 @@ Testing steps after install:
 1. Confirm HAProxy frontends are listening: `lxc exec haproxy -- ss -ltnp`.
 2. From external client, test HTTP (web) and HTTPS endpoints.
 3. Test importing `enrollmentDP.zip` into ATAK on an Android device.
-4. Test RTSP pull from MediaMTX using VLC: `rtsp://rtsp.example.tld/camera1`.
+4. Test RTSP pull from MediaMTX using VLC: `rtsp://rtsptak.pinenut.tech/camera1`.
 
 ---
 
@@ -544,7 +544,7 @@ When you create your repos, here’s recommended layout.
 
 - `host-setup/` — host init scripts (user creation, ufw rules, fail2ban config)
 - `lxd-profiles/` — exported LXD profiles (network/storage) and `lxc` commands to import
-- `containers/` — `haproxy/`, `tak/`, `web/`, `media/` subfolders with `Dockerfile`-like configs or `cloud-init` userdata for containers
+- `containers/` — `haproxy/`, `tak/`, `web/`, `rtsptak/` subfolders with `Dockerfile`-like configs or `cloud-init` userdata for containers
 - `installTAK/` — your copy of `installTAK` and local `answers.txt` for unattended install
 - `secrets.example` (NOT actual secrets) — template for where to place CA password, domain names
 - `backup/` — backup & restore scripts
@@ -554,7 +554,7 @@ When you create your repos, here’s recommended layout.
 - `README.md` — high-level guide (sanitized)
 - `lxd-commands.md` — step-by-step LXD commands (no secrets)
 - `haproxy/` — example haproxy.cfg (with placeholders)
-- `media/` — MediaMTX example config
+- `rtsptak/` — MediaMTX example config
 - `install-scripts/` — convenience scripts to create containers and initial snapshots
 - `CONTRIBUTING.md` — how to adapt to local domains/IPs
 
