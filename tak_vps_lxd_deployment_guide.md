@@ -97,7 +97,7 @@ sudo lxd init --auto
 newgrp lxd
 lxd version
 
-# Should see an output like 6.0.0 
+# Output 5.0.5 is likely for Ubuntu 22.04 LTS
 
 # Create admin user (if not already created), add to sudo
 sudo adduser adminuser
