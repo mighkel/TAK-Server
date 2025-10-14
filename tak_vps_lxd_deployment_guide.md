@@ -333,6 +333,42 @@ lxc exec haproxy -- systemctl restart haproxy
 lxc exec haproxy -- systemctl enable haproxy
 ```
 
+### 5.5b Port forwarding from host to HAProxy container
+
+Now that HAProxy is configured and running inside its container, we need to forward ports from the VPS public IP to the HAProxy container. This makes HAProxy accessible from the internet.
+```bash
+# Forward HTTP (port 80) - for Let's Encrypt challenges and web redirects
+lxc config device add haproxy http proxy listen=tcp:0.0.0.0:80 connect=tcp:127.0.0.1:80
+
+# Forward HTTPS (port 443) - if you add HTTPS termination later
+lxc config device add haproxy https proxy listen=tcp:0.0.0.0:443 connect=tcp:127.0.0.1:443
+
+# Forward TAK client port (8089)
+lxc config device add haproxy tak8089 proxy listen=tcp:0.0.0.0:8089 connect=tcp:127.0.0.1:8089
+
+# Forward TAK web UI port (8443)
+lxc config device add haproxy tak8443 proxy listen=tcp:0.0.0.0:8443 connect=tcp:127.0.0.1:8443
+
+# Forward RTSP port (554) for MediaMTX video streams
+lxc config device add haproxy rtsp554 proxy listen=tcp:0.0.0.0:554 connect=tcp:127.0.0.1:554
+
+# Optional: Forward HAProxy stats page (8404)
+lxc config device add haproxy stats proxy listen=tcp:0.0.0.0:8404 connect=tcp:127.0.0.1:8404
+```
+
+Verify the proxy devices are active:
+```bash
+lxc config show haproxy | grep -A3 "devices:"
+```
+
+Test that HAProxy is now listening on the host:
+```bash
+# On the host, check that ports are listening
+sudo ss -tulpn | grep -E ':(80|443|554|8089|8443|8404)'
+```
+
+You should see the ports bound to 0.0.0.0 (all interfaces).
+
 ### 5.6 TLS / Let’s Encrypt strategy
 
 Two valid strategies:
@@ -347,41 +383,104 @@ If using HAProxy termination, install certbot on the `haproxy` container and con
 
 ### 5.7 Install TAK Server inside `tak` container (myTeckNet installTAK)
 
-#### Copy installTAK files into the tak container
+The myTeckNet `installTAK` script automates TAK Server installation, certificate generation, and creates enrollment packages for easy ATAK client onboarding.
 
-On host, assuming you downloaded/unzipped `installTAK` into `~/installTAK`:
+#### Prerequisites
 
+Download these files from https://tak.gov to your local Windows machine:
+- `takserver_5.5-RELEASE58_all.deb` (or latest version)
+- `takserver-public-gpg.key`
+- `deb_policy.pol`
+
+Download `installTAK.sh` from https://github.com/myTeckNet/installTAK to your local machine.
+
+Place all files in a folder like `C:\TAK\` on your Windows desktop.
+
+#### Transfer files to VPS
+
+Using WinSCP, connect to your VPS as `takadmin` and upload all files to `/home/takadmin/tak-install/`:
+
+1. Open WinSCP and connect to your VPS IP
+2. Create directory `/home/takadmin/tak-install/`
+3. Upload all 4 files to this directory
+
+#### Push files into tak container
+
+From your SSH session on the VPS host:
 ```bash
-# Push the repository to tak container
-lxc file push -r ~/installTAK tak/root/installTAK
-# or push the single installer script
-lxc file push ~/installTAK/installTAK.sh tak/root/installTAK.sh
+# Push all TAK files into the tak container
+lxc file push /home/takadmin/tak-install/installTAK.sh tak/root/
+lxc file push /home/takadmin/tak-install/takserver_5.5-RELEASE58_all.deb tak/root/
+lxc file push /home/takadmin/tak-install/takserver-public-gpg.key tak/root/
+lxc file push /home/takadmin/tak-install/deb_policy.pol tak/root/
 
-# Exec into container and run installer
-lxc exec tak -- bash -lc "cd /root/installTAK && chmod +x installTAK && ./installTAK ."
-# If it is the .txt you uploaded as installTAK.txt, rename to executable
-lxc exec tak -- bash -lc "cd /root && mv installTAK.txt installTAK && chmod +x installTAK && ./installTAK ./TAKServer-*.deb"
+# Make the installer executable
+lxc exec tak -- chmod +x /root/installTAK.sh
+
+# Verify files are in place
+lxc exec tak -- ls -lh /root/
 ```
 
-A few important notes about `installTAK` (myTeckNet):
-- It validates prerequisites (Java, PostgreSQL/PostGIS, etc.) and will abort if minimal RAM < 8GB.
-- It supports generating a CA, intermediate CA, server JKS, and client certs; it can also request Let's Encrypt certs and create JKS keystore for TAK.
-- The script creates mission-package enrollment ZIP files (`enrollmentDP.zip`) for easy ATAK onboarding.
-
-Follow the interactive prompts. Typical flow:
-1. Choose platform (Ubuntu/Debian)
-2. Provide certificate properties, choose Let’s Encrypt or local CA.
-3. Select SSL vs QUIC connectors
-4. Choose to enable federation or not
-5. Create admin cert, enrollment packages
-
-After install, ensure TAK service is running:
-
+#### Run the installer
 ```bash
-lxc exec tak -- systemctl status takserver.service
-# check logs
-lxc exec tak -- tail -n 200 /opt/tak/logs/takserver-messaging.log
+# Start the interactive installer
+lxc exec tak -- /root/installTAK.sh /root/takserver_5.5-RELEASE58_all.deb
 ```
+
+The installer will prompt you for:
+
+1. **Platform selection** - Choose Ubuntu/Debian
+2. **Certificate details**:
+   - Organization name (e.g., "Pine Nut County")
+   - State/Province
+   - Country code (US)
+   - Organizational Unit (e.g., "Public Safety")
+3. **Server FQDN** - Enter `tak.pinenut.tech`
+4. **Let's Encrypt** - Choose YES to automatically get SSL certificates
+   - Provide email for cert notifications
+5. **Connector type** - Choose SSL (not QUIC unless you need it)
+6. **Federation** - Choose NO unless you're connecting to other TAK servers
+7. **Admin certificate** - YES, create an admin cert for WebTAK access
+8. **Data packages** - YES, create enrollment packages for ATAK clients
+
+The installer will:
+- Install Java, PostgreSQL, PostGIS
+- Configure TAK Server
+- Request Let's Encrypt certificates
+- Create enrollment packages (`enrollmentDP.zip`)
+- Start the TAK Server service
+
+#### Verify installation
+```bash
+# Check TAK Server status
+lxc exec tak -- systemctl status takserver
+
+# View recent logs
+lxc exec tak -- tail -n 50 /opt/tak/logs/takserver-messaging.log
+
+# Check that TAK is listening on ports 8089 and 8443
+lxc exec tak -- ss -tulpn | grep java
+```
+
+Expected output should show Java processes listening on ports 8089 and 8443.
+
+#### Retrieve enrollment packages
+
+The enrollment packages are located at `/opt/tak/certs/files/` inside the tak container. Pull them to the host, then download via WinSCP:
+```bash
+# Pull enrollment package from tak container to host
+lxc file pull tak/opt/tak/certs/files/enrollmentDP.zip /home/takadmin/
+
+# Now use WinSCP to download enrollmentDP.zip from /home/takadmin/ to your Windows machine
+```
+
+You'll distribute this ZIP file to ATAK users for easy connection to your TAK Server.
+
+**Important notes:**
+- The installer validates system requirements (8GB+ RAM, disk space)
+- Let's Encrypt requires ports 80/443 to be accessible for certificate validation
+- If Let's Encrypt fails, the installer will create a local CA instead
+- Save the admin certificate password shown during installation
 
 ### 5.8 Mission-package generation & onboarding
 
@@ -415,9 +514,26 @@ lxc exec rtsptak -- mkdir -p /opt/mediamtx
 # Example to download inside container (replace URL with latest):
 lxc exec rtsptak -- bash -lc "cd /opt/mediamtx && curl -L -o mediamtx.tar.gz 'https://github.com/bluenviron/mediamtx/releases/download/v1.15.2/mediamtx_v1.15.2_linux_amd64.tar.gz' && tar xzf mediamtx.tar.gz"
 
-# create systemd service
-lxc exec rtsptak -- bash -lc "cat >/etc/systemd/system/mediamtx.service <<'EOF'\n[Unit]\nDescription=MediaMTX\nAfter=network.target\n\n[Service]\nUser=root\nExecStart=/opt/mediamtx/mediamtx\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\nEOF"
-lxc exec rtsptak -- systemctl daemon-reload && systemctl enable --now mediamtx
+# Create systemd service file for MediaMTX
+lxc exec rtsptak -- bash <<'EOF'
+cat >/etc/systemd/system/mediamtx.service <<'SYSTEMD'
+[Unit]
+Description=MediaMTX
+After=network.target
+
+[Service]
+User=root
+ExecStart=/opt/mediamtx/mediamtx
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+SYSTEMD
+EOF
+
+# Enable and start the service
+lxc exec rtsptak -- systemctl daemon-reload
+lxc exec rtsptak -- systemctl enable --now mediamtx
 ```
 
 MediaMTX default listens on TCP 8554 for RTSP. We mapped haproxy backend to container port `8554` (or `8554` → `8554` mapping). Configure MediaMTX via its `mediamtx.yml` for stream auth or specific mount points.
@@ -584,7 +700,7 @@ systemctl reload haproxy
 
 ## Quick checklist before going live
 
-- [ ] Get DNS set for `tak`,`web`,`rtsp` subdomains
+- [ ] Get DNS set for `tak`,`web`,`rtsptak` subdomains
 - [ ] Create containers and verify IPs
 - [ ] Install HAProxy and push config with correct backend IPs
 - [ ] Copy `installTAK` to tak container and run the installer
