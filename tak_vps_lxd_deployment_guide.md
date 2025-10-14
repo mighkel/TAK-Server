@@ -209,6 +209,147 @@ lxc list
 
 Record the containers' internal IPs (e.g. 10.13.x.x) — we'll use them in HAProxy config.
 
+### 5.3b Troubleshooting: Container Networking Issues
+
+If your containers launch with only IPv6 addresses and no IPv4, follow these steps to fix networking.
+
+#### Manually assign IPv4 addresses
+```bash
+# Assign static IPs to each container
+lxc exec haproxy -- ip addr add 10.206.248.10/24 dev eth0
+lxc exec haproxy -- ip route add default via 10.206.248.1
+
+lxc exec tak -- ip addr add 10.206.248.11/24 dev eth0
+lxc exec tak -- ip route add default via 10.206.248.1
+
+lxc exec web -- ip addr add 10.206.248.12/24 dev eth0
+lxc exec web -- ip route add default via 10.206.248.1
+
+lxc exec rtsptak -- ip addr add 10.206.248.13/24 dev eth0
+lxc exec rtsptak -- ip route add default via 10.206.248.1
+
+# Add DNS servers to each container
+for container in haproxy tak web rtsptak; do
+  lxc exec $container -- bash -c "echo 'nameserver 8.8.8.8' > /etc/resolv.conf"
+  lxc exec $container -- bash -c "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf"
+done
+
+# Verify containers now show IPv4
+lxc list
+```
+
+#### Fix host firewall to allow container traffic
+```bash
+# Allow DNS queries from containers
+sudo iptables -I FORWARD -i lxdbr0 -p udp --dport 53 -j ACCEPT
+sudo iptables -I FORWARD -i lxdbr0 -p tcp --dport 53 -j ACCEPT
+
+# Allow all outbound traffic from containers
+sudo iptables -I FORWARD -i lxdbr0 -j ACCEPT
+sudo iptables -I FORWARD -o lxdbr0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# Enable IP forwarding
+sudo sysctl -w net.ipv4.ip_forward=1
+echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+
+# Make iptables rules persistent
+sudo apt install -y iptables-persistent
+sudo netfilter-persistent save
+```
+
+#### Make static IPs permanent with netplan
+
+Create netplan configuration for each container:
+```bash
+# HAProxy container (10.206.248.10)
+lxc exec haproxy -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.206.248.10/24]
+      routes:
+        - to: default
+          via: 10.206.248.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# TAK container (10.206.248.11)
+lxc exec tak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.206.248.11/24]
+      routes:
+        - to: default
+          via: 10.206.248.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# Web container (10.206.248.12)
+lxc exec web -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.206.248.12/24]
+      routes:
+        - to: default
+          via: 10.206.248.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# RTSPTAK container (10.206.248.13)
+lxc exec rtsptak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.206.248.13/24]
+      routes:
+        - to: default
+          via: 10.206.248.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# Fix file permissions and apply netplan
+for container in haproxy tak web rtsptak; do
+  lxc exec $container -- chmod 600 /etc/netplan/10-lxc.yaml
+  lxc exec $container -- netplan apply
+done
+```
+
+#### Verify networking is working
+```bash
+# Check IPs are assigned
+lxc list
+
+# Test DNS resolution
+lxc exec haproxy -- nslookup archive.ubuntu.com
+
+# Test package updates
+lxc exec haproxy -- apt update
+```
+
+Expected result: All containers show IPv4 addresses and can successfully update packages.
+
+**Container IP Summary:**
+- haproxy: 10.206.248.10
+- tak: 10.206.248.11
+- web: 10.206.248.12
+- rtsptak: 10.206.248.13
+
+---
+
 ### 5.4 Prepare containers (common steps)
 
 Run these for each container (`haproxy`, `tak`, `web`, `rtsptak`). Replace `CONTAINER` with the container name.
