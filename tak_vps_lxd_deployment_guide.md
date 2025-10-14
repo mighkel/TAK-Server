@@ -91,41 +91,85 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl wget git unzip snapd ufw fail2ban
 sudo snap install lxd
+
+# Optional (Ensures the current user can run lxc without sudo.)
+sudo usermod -aG lxd $USER
+newgrp lxd
+# End of option
+
 sudo lxd init --auto
 
 # Optional sanity check
 newgrp lxd
 lxd version
-
-# Output 5.0.5 is likely for Ubuntu 22.04 LTS
+# Output around 5.x (e.g., 5.0.5 or newer) is normal for Ubuntu 22.04 LTS
 
 # Create admin user (if not already created), add to sudo
-sudo adduser adminuser
-sudo usermod -aG sudo adminuser
-# Add your public SSH key to /home/adminuser/.ssh/authorized_keys
+sudo adduser takadmin
+sudo usermod -aG sudo takadmin
 
-# Disable root SSH and password auth (edit /etc/ssh/sshd_config)
+# Add your public SSH key to /home/takadmin/.ssh/authorized_keys
+sudo mkdir -p /home/takadmin/.ssh
+sudo chmod 700 /home/takadmin/.ssh
+sudo chown takadmin:takadmin /home/takadmin/.ssh
+
+# Create or edit the authorized_keys file using nano
+sudo nano /home/takadmin/.ssh/authorized_keys
+
+# Paste your public SSH key (the same one you used when provisioning the VPS), then:
+#   - Press Ctrl+O, Enter to save
+#   - Press Ctrl+X to exit
+
+# Set correct permissions:
+sudo chmod 600 /home/takadmin/.ssh/authorized_keys
+sudo chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
+
+# Optional Quick Test — Verify SSH access before disabling root
+
+# ⚠️ Do not close your current root session yet.
+# Open a new terminal window for this test.
+ssh takadmin@<your_vps_ip>
+
+# If you log in without being prompted for a password, your SSH key authentication works.
+# Next, verify sudo rights:
+sudo whoami
+
+# Expected output:
+root
+
+# If both commands succeed, you can safely disable root SSH login.
+# If login fails or asks for a password, double-check:
+sudo chmod 700 /home/takadmin/.ssh
+sudo chmod 600 /home/takadmin/.ssh/authorized_keys
+
+# Ensure your public key is one continuous line with no line breaks.
+
+# Disable root SSH and password authentication
+sudo nano /etc/ssh/sshd_config
+# Set:
+# PermitRootLogin no
+# PasswordAuthentication no
+sudo systemctl reload sshd
+
+# Alternatively (one-liners):
 sudo sed -i "s/^#*PermitRootLogin.*/PermitRootLogin no/" /etc/ssh/sshd_config
 sudo sed -i "s/^#*PasswordAuthentication.*/PasswordAuthentication no/" /etc/ssh/sshd_config
 sudo systemctl reload sshd
 
-# UFW: basic host firewall (allow SSH from your IP only ideally)
+# Configure UFW firewall
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow ssh
-# Allow HTTP/HTTPS for cert issuance & public pages
 sudo ufw allow http
 sudo ufw allow https
-# Allow TAK client ports if you want haproxy to receive them
 sudo ufw allow 8089/tcp
 sudo ufw allow 8443/tcp
-# Allow RTSP (if you plan to proxy TCP) - we'll proxy via haproxy
 sudo ufw allow 554/tcp
+echo "y" | sudo ufw enable
 
-sudo ufw enable
-
-# Fail2ban: basic install
+# Enable Fail2ban for basic SSH protection
 sudo systemctl enable --now fail2ban
+# Default jail protects SSH only; configuration file: /etc/fail2ban/jail.local
 ```
 
 Notes:
@@ -169,11 +213,11 @@ Run these for each container (`haproxy`, `tak`, `web`, `media`). Replace `CONTAI
 ```bash
 lxc exec CONTAINER -- bash -c "apt update && apt upgrade -y"
 # create admin user inside container to match host sudo user (optional)
-lxc exec CONTAINER -- useradd -m -s /bin/bash adminuser || true
-lxc exec CONTAINER -- bash -c "mkdir -p /home/adminuser/.ssh && chown adminuser:adminuser /home/adminuser/.ssh"
+lxc exec CONTAINER -- useradd -m -s /bin/bash takadmin || true
+lxc exec CONTAINER -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
 # copy your public key from host
-lxc file push ~/.ssh/id_rsa.pub CONTAINER/home/adminuser/.ssh/authorized_keys --mode=0600
-lxc exec CONTAINER -- chown adminuser:adminuser /home/adminuser/.ssh/authorized_keys
+lxc file push ~/.ssh/id_rsa.pub CONTAINER/home/takadmin/.ssh/authorized_keys --mode=0600
+lxc exec CONTAINER -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
 
 # Install basic utilities in container
 lxc exec CONTAINER -- apt install -y vim curl wget unzip ufw
