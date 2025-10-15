@@ -402,13 +402,23 @@ defaults
     timeout client  1m
     timeout server  1m
 
-# HTTP frontend for web UI
+# HTTP frontend for web UI and ACME challenges
 frontend http-in
     bind *:80
     mode http
+    
+    # Forward Let's Encrypt challenges to tak container
+    acl is_acme_challenge path_beg /.well-known/acme-challenge/
+    use_backend tak-acme-backend if is_acme_challenge
+    
+    # Normal web traffic
     acl host_web hdr(host) -i web.pinenut.tech
     use_backend web-backend if host_web
     default_backend web-backend
+
+backend tak-acme-backend
+    mode http
+    server tak 10.206.248.11:80
 
 backend web-backend
     mode http
@@ -442,7 +452,7 @@ backend tak-server-backend
     option ssl-hello-chk
     server takweb 10.206.248.11:8443
 
-# RTSP frontend (TCP) for MediaMTX on port 554
+# RTSP frontend (TCP) for MediaMTX on port 8554
 frontend rtsp-in
     bind *:8554
     mode tcp
@@ -452,7 +462,6 @@ frontend rtsp-in
 
 backend rtsptak-backend
     mode tcp
-    option tcplog
     server rtsptak 10.206.248.13:8554 check
 
 # Stats endpoint
