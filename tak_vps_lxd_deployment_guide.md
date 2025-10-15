@@ -552,6 +552,10 @@ If using HAProxy termination, install certbot on the `haproxy` container and con
 
 The myTeckNet `installTAK` script automates TAK Server installation, certificate generation, and creates enrollment packages for easy ATAK client onboarding.
 
+**Note for Windows users:** The script has no extension but is a bash script. 
+If you renamed it to `installTAK.sh` during transfer, that's fine - it works either way.
+Just remember to use `chmod +x` to make it executable.
+
 #### Prerequisites
 
 Download these files from https://tak.gov to your local Windows machine:
