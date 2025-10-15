@@ -167,7 +167,7 @@ sudo ufw allow http
 sudo ufw allow https
 sudo ufw allow 8089/tcp
 sudo ufw allow 8443/tcp
-sudo ufw allow 554/tcp
+sudo ufw allow 8554/tcp
 echo "y" | sudo ufw enable
 
 # Enable Fail2ban for basic SSH protection
