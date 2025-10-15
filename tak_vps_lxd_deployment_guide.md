@@ -579,10 +579,12 @@ lxc exec tak -- chmod +x /root/installTAK.sh
 lxc exec tak -- ls -lh /root/
 ```
 
-#### Run the installer
-```bash
+#### Run the installer from inside the container to avoid path issues
+```
+sudo lxc exec tak -- bash
 # Start the interactive installer
-lxc exec tak -- /root/installTAK.sh /root/takserver_5.5-RELEASE58_all.deb
+cd /root
+./installTAK.sh takserver_5.5-RELEASE58_all.deb
 ```
 
 The installer will prompt you for:
