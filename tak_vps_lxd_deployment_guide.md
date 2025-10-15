@@ -559,7 +559,7 @@ Place all files in a folder like `C:\TAK\` on your Windows desktop.
 Using WinSCP, connect to your VPS as `takadmin` and upload all files to `/home/takadmin/tak-install/`:
 
 1. Open WinSCP and connect to your VPS IP
-2. Create directory `/home/takadmin/tak-install/`
+2. Activate directory `/home/takadmin/`
 3. Upload all 4 files to this directory
 
 #### Push files into tak container
@@ -567,10 +567,10 @@ Using WinSCP, connect to your VPS as `takadmin` and upload all files to `/home/t
 From your SSH session on the VPS host:
 ```bash
 # Push all TAK files into the tak container
-lxc file push /home/takadmin/tak-install/installTAK.sh tak/root/
-lxc file push /home/takadmin/tak-install/takserver_5.5-RELEASE58_all.deb tak/root/
-lxc file push /home/takadmin/tak-install/takserver-public-gpg.key tak/root/
-lxc file push /home/takadmin/tak-install/deb_policy.pol tak/root/
+lxc file push installTAK.sh tak/root/
+lxc file push takserver_5.5-RELEASE58_all.deb tak/root/
+lxc file push takserver-public-gpg.key tak/root/
+lxc file push deb_policy.pol tak/root/
 
 # Make the installer executable
 lxc exec tak -- chmod +x /root/installTAK.sh
