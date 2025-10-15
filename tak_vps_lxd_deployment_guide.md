@@ -589,17 +589,21 @@ The installer will prompt you for:
 
 1. **Platform selection** - Choose Ubuntu/Debian
 2. **Certificate details**:
-   - Organization name (e.g., "Pine Nut County")
-   - State/Province
-   - Country code (US)
-   - Organizational Unit (e.g., "Public Safety")
-3. **Server FQDN** - Enter `tak.pinenut.tech`
-4. **Let's Encrypt** - Choose YES to automatically get SSL certificates
+   - Country (US)
+   - State (Idaho)
+   - City (Boise)
+   - Organization (BoiseCounty)
+   - Organizational Unit (CCVFD)
+   - Change default Cert password from atakatak? (Yes) (hwy21hwy21)
+   - Name for Root CA (boisecountyroot)
+   - Intermediate CA (intermediateBC)
+4. **Server FQDN** - Enter `tak.pinenut.tech`
+5. **Let's Encrypt** - Choose YES to automatically get SSL certificates
    - Provide email for cert notifications
-5. **Connector type** - Choose SSL (not QUIC unless you need it)
-6. **Federation** - Choose NO unless you're connecting to other TAK servers
-7. **Admin certificate** - YES, create an admin cert for WebTAK access
-8. **Data packages** - YES, create enrollment packages for ATAK clients
+6. **Connector type** - Choose SSL (not QUIC unless you need it)
+7. **Federation** - Choose NO unless you're connecting to other TAK servers (Yes)
+8. **Admin certificate** - YES, create an admin cert for WebTAK access
+9. **Data packages** - YES, create enrollment packages for ATAK clients
 
 The installer will:
 - Install Java, PostgreSQL, PostGIS
