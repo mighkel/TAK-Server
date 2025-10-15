@@ -382,6 +382,8 @@ Now create `/etc/haproxy/haproxy.cfg` inside the `haproxy` container with the co
 **Full HAProxy config (example)** — adjust domain names and backend IPs to your `lxc list` values.
 
 ```
+# Create the config file on the host first
+cat > /tmp/haproxy.cfg <<'EOF'
 global
     log /dev/log    local0
     log /dev/log    local1 notice
@@ -400,7 +402,7 @@ defaults
     timeout client  1m
     timeout server  1m
 
-# HTTP frontend for web UI (optional)
+# HTTP frontend for web UI
 frontend http-in
     bind *:80
     mode http
@@ -438,15 +440,14 @@ frontend tak-server
 backend tak-server-backend
     mode tcp
     option ssl-hello-chk
-    server takweb 10.206.248.11:8089
+    server takweb 10.206.248.11:8443
 
-# RTSP frontend (TCP) for MediaMTX, example on port 554
+# RTSP frontend (TCP) for MediaMTX on port 554
 frontend rtsp-in
-    bind *:554
+    bind *:8554
     mode tcp
     option tcplog
     tcp-request inspect-delay 5s
-    acl host_rtsp req.ssl_sni -m found # SNI not used by RTSP; we match on IP/port here
     default_backend rtsptak-backend
 
 backend rtsptak-backend
@@ -454,22 +455,33 @@ backend rtsptak-backend
     option tcplog
     server rtsptak 10.206.248.13:8554 check
 
-# Optionally add a stats endpoint
+# Stats endpoint
 listen stats
     bind *:8404
     mode http
     stats enable
     stats uri /haproxy_stats
     stats auth admin:YourStrongPassword
+EOF
+
+# Push the file to the haproxy container
+lxc file push /tmp/haproxy.cfg haproxy/etc/haproxy/haproxy.cfg
 ```
 
 Notes:
 - HAProxy is configured for TCP passthrough for TAK and RTSP. This lets TLS be terminated inside the TAK and Media containers (or you can terminate TLS in HAProxy; choose one).
 - If you prefer HAProxy to terminate TLS (recommended for central cert management), change `mode tcp` to `mode http` for HTTP frontends and add `bind *:443 ssl crt /etc/letsencrypt/live/domain/fullchain.pem` lines.
 
-After you write the config, restart HAProxy:
+After you write the config, verify and restart HAProxy:
 
-```bash
+```
+# Verify the config
+lxc exec haproxy -- cat /etc/haproxy/haproxy.cfg
+
+# Test the config syntax
+lxc exec haproxy -- haproxy -c -f /etc/haproxy/haproxy.cfg
+
+# Restart HAProxy
 lxc exec haproxy -- systemctl restart haproxy
 lxc exec haproxy -- systemctl enable haproxy
 ```
