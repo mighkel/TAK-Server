@@ -484,16 +484,19 @@ lxc exec haproxy -- haproxy -c -f /etc/haproxy/haproxy.cfg
 # Restart HAProxy
 lxc exec haproxy -- systemctl restart haproxy
 lxc exec haproxy -- systemctl enable haproxy
+
+# Check status
+lxc exec haproxy -- systemctl status haproxy
 ```
 
 ### 5.5b Port forwarding from host to HAProxy container
 
 Now that HAProxy is configured and running inside its container, we need to forward ports from the VPS public IP to the HAProxy container. This makes HAProxy accessible from the internet.
-```bash
-# Forward HTTP (port 80) - for Let's Encrypt challenges and web redirects
+```
+# Forward HTTP (port 80)
 lxc config device add haproxy http proxy listen=tcp:0.0.0.0:80 connect=tcp:127.0.0.1:80
 
-# Forward HTTPS (port 443) - if you add HTTPS termination later
+# Forward HTTPS (port 443) - for future use
 lxc config device add haproxy https proxy listen=tcp:0.0.0.0:443 connect=tcp:127.0.0.1:443
 
 # Forward TAK client port (8089)
@@ -502,22 +505,24 @@ lxc config device add haproxy tak8089 proxy listen=tcp:0.0.0.0:8089 connect=tcp:
 # Forward TAK web UI port (8443)
 lxc config device add haproxy tak8443 proxy listen=tcp:0.0.0.0:8443 connect=tcp:127.0.0.1:8443
 
-# Forward RTSP port (554) for MediaMTX video streams
-lxc config device add haproxy rtsp554 proxy listen=tcp:0.0.0.0:554 connect=tcp:127.0.0.1:554
+# Forward RTSP port (8554)
+lxc config device add haproxy rtsp8554 proxy listen=tcp:0.0.0.0:8554 connect=tcp:127.0.0.1:8554
 
 # Optional: Forward HAProxy stats page (8404)
 lxc config device add haproxy stats proxy listen=tcp:0.0.0.0:8404 connect=tcp:127.0.0.1:8404
 ```
 
 Verify the proxy devices are active:
-```bash
+```
+bash
 lxc config show haproxy | grep -A3 "devices:"
 ```
 
 Test that HAProxy is now listening on the host:
-```bash
+```
+bash
 # On the host, check that ports are listening
-sudo ss -tulpn | grep -E ':(80|443|554|8089|8443|8404)'
+sudo ss -tulpn | grep -E ':(80|443|8554|8089|8443|8404)'
 ```
 
 You should see the ports bound to 0.0.0.0 (all interfaces).
