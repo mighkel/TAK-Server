@@ -301,14 +301,10 @@ echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
 
 # Make iptables rules persistent
 sudo apt install -y iptables-persistent
+# When prompted "Save current IPv4 rules?" select: <Yes>
+# When prompted "Save current IPv6 rules?" select: <Yes>
 sudo netfilter-persistent save
 ```
-
-## Make iptables rules persistent
-`sudo apt install -y iptables-persistent`
-### When prompted "Save current IPv4 rules?" select: <Yes>
-### When prompted "Save current IPv6 rules?" select: <Yes>
-`sudo netfilter-persistent save`
 
 #### Make static IPs permanent with netplan
 
