@@ -113,25 +113,46 @@ sudo mkdir -p /home/takadmin/.ssh
 sudo chmod 700 /home/takadmin/.ssh
 sudo chown takadmin:takadmin /home/takadmin/.ssh
 
+# ⚠️ IMPORTANT: Get the correct SSH key format
+# Open PuTTYgen on your Windows machine
+# Load your private key (.ppk file)
+# In the menu: Conversions → Export OpenSSH key
+# Save as: id_rsa (no extension) - THIS IS YOUR PRIVATE KEY FOR REFERENCE
+# 
+# Now get the PUBLIC key in the correct format:
+# In PuTTYgen, at the top, you'll see "Public key for pasting into OpenSSH authorized_keys file:"
+# COPY THE ENTIRE TEXT from that box - it will be ONE LONG LINE starting with "ssh-rsa"
+
 # Create or edit the authorized_keys file using nano
 sudo nano /home/takadmin/.ssh/authorized_keys
 
-# Paste your public SSH key (the same one you used when provisioning the VPS), then:
-#   - Press Ctrl+O, Enter to save
-#   - Press Ctrl+X to exit
-# Note: If you are copying from the PuTTY-generated key, you will need to do a little conversion.
-# The easiest way:
-# In PuTTYGen, select “Conversions → Export OpenSSH key” or copy from “Public key for pasting into OpenSSH authorized_keys file.”
+# Paste your SSH public key
+# It should look like ONE line:
+# ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... (very long)... rsa-key-20250101
+#
+# ⚠️ CRITICAL: Must be ONE continuous line with NO line breaks
+# If it wraps in nano, that's OK - just make sure there are no actual newline characters
+# The entire key should be on a single line
+
+# Press Ctrl+O, Enter to save
+# Press Ctrl+X to exit
 
 # Set correct permissions:
 sudo chmod 600 /home/takadmin/.ssh/authorized_keys
 sudo chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
 
+# ⚠️ VERIFY the key is correct
+cat /home/takadmin/.ssh/authorized_keys
+# Should show ONE line starting with "ssh-rsa"
+# Should be approximately 400-800 characters long
+# Should NOT have any line breaks in the middle
+
 # Optional Quick Test — Verify SSH access before disabling root
 
 # ⚠️ Do not close your current root session yet.
-# Open a new terminal window for this test.
+# Open a new PuTTY session for this test.
 ssh takadmin@<your_vps_ip>
+# Should login WITHOUT asking for password
 
 # If you log in without being prompted for a password, your SSH key authentication works.
 # Next, verify sudo rights:
