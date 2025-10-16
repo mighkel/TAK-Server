@@ -55,7 +55,7 @@ This document covers:
    > “SSH Comment format is invalid. Only enter Alphanumeric, Slash (/), Plus (+), At sign (@), Underscore (_) or Equal sign (=) in comment.”
 5. Confirm and launch installation.
 
-![SSDNodes SSH key field](images/ssdnodes-ssh-key-field.png)
+![SSDNodes SSH key field](IMG/ssdnodes-ssh-key-field.png)
 
 > Once an SSH key is set, root SSH password access will be disabled.
 
@@ -71,7 +71,7 @@ This document covers:
 6. Return to **Session**, enter a session name under **Saved Sessions**, and click **Save**.  
 7. Click **Open** to connect.
 
-![PuTTY configuration screen](images/putty-session-config.png)
+![PuTTY configuration screen](IMG/putty-session-config.png)
 
 8. The first time, you’ll see a **host key not cached** warning — click **Accept**.  
 9. When prompted, log in as `root` (first connection only; you’ll add a new admin user later).
@@ -93,7 +93,7 @@ This document covers:
 6. Accept the host key warning.  
 7. When prompted, log in as `root`.  
 
-![WinSCP authentication screen](images/winscp-auth.png)
+![WinSCP authentication screen](IMG/winscp-auth.png)
 
 ---
 
