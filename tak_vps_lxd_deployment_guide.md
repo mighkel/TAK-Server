@@ -304,11 +304,11 @@ sudo apt install -y iptables-persistent
 sudo netfilter-persistent save
 ```
 
-# Make iptables rules persistent
-sudo apt install -y iptables-persistent
-# When prompted "Save current IPv4 rules?" select: <Yes>
-# When prompted "Save current IPv6 rules?" select: <Yes>
-sudo netfilter-persistent save
+## Make iptables rules persistent
+`sudo apt install -y iptables-persistent`
+### When prompted "Save current IPv4 rules?" select: <Yes>
+### When prompted "Save current IPv6 rules?" select: <Yes>
+`sudo netfilter-persistent save`
 
 #### Make static IPs permanent with netplan
 
@@ -380,14 +380,15 @@ for container in haproxy tak web rtsptak; do
   lxc exec $container -- netplan apply
 done
 ```
-# Fix file permissions and apply netplan
+### Fix file permissions and apply netplan
+```
 for container in haproxy tak web rtsptak; do
   lxc exec $container -- chmod 600 /etc/netplan/10-lxc.yaml
   lxc exec $container -- netplan apply
 done
-
-# Note: You may see "WARNING: Cannot call Open vSwitch" messages
-# These are harmless - Open vSwitch is not used in this setup
+```
+### Note: You may see "WARNING: Cannot call Open vSwitch" messages
+### These are harmless - Open vSwitch is not used in this setup
 
 #### Verify networking is working
 ```bash
