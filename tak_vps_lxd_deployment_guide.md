@@ -87,6 +87,22 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 ### 5.1 Host provisioning & hardening (Ubuntu 22.04)
 
 ```bash
+### 📝 PuTTY Connection Setup
+
+**Option 1: Modify existing root connection**
+1. Load your existing root session in PuTTY
+2. Change "Host Name" from `root@your-vps-ip` to just `your-vps-ip`
+3. Connection → Data → Auto-login username: `takadmin`
+4. Connection → SSH → Auth → Private key file: Browse to your `.ppk` file
+5. Session → Save (give it a new name like "VPS-takadmin")
+
+**Option 2: Login prompt method (simpler)**
+1. Use your existing root connection settings
+2. When PuTTY prompts "login as:", type `takadmin`
+3. Should login without password
+
+⚠️ **Common mistake:** Creating a new PuTTY session from scratch without setting the private key path under Connection → SSH → Auth → Private key file
+
 # Update & basic tools
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl wget git unzip snapd ufw fail2ban
