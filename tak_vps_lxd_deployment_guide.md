@@ -303,16 +303,12 @@ echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
 sudo apt install -y iptables-persistent
 sudo netfilter-persistent save
 ```
-### IP Table message
-If you see this message
-```
-Current iptables rules can be saved to the configuration file /etc/iptables/rules.v4. These rules will then be loaded automatically during system startup.
 
-Rules are only saved automatically during package installation. See the manual page of iptables-save(8) for instructions on keeping the rules file up-to-date.
-
-Save current IPv4 rules? 
-```
-Select `<Yes>`
+# Make iptables rules persistent
+sudo apt install -y iptables-persistent
+# When prompted "Save current IPv4 rules?" select: <Yes>
+# When prompted "Save current IPv6 rules?" select: <Yes>
+sudo netfilter-persistent save
 
 #### Make static IPs permanent with netplan
 
@@ -384,6 +380,14 @@ for container in haproxy tak web rtsptak; do
   lxc exec $container -- netplan apply
 done
 ```
+# Fix file permissions and apply netplan
+for container in haproxy tak web rtsptak; do
+  lxc exec $container -- chmod 600 /etc/netplan/10-lxc.yaml
+  lxc exec $container -- netplan apply
+done
+
+# Note: You may see "WARNING: Cannot call Open vSwitch" messages
+# These are harmless - Open vSwitch is not used in this setup
 
 #### Verify networking is working
 ```bash
