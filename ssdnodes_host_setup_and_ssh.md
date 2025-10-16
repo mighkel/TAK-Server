@@ -25,7 +25,7 @@ This document covers:
 2. Under **Parameters**, keep defaults: RSA, 2048 bits (or increase to 4096 if desired).  
 3. Click **Generate**, and move the mouse randomly in the blank area to generate entropy.  
 
-![PuTTYGen generation screen](images/puttygen-generate.png)
+![PuTTYGen generation screen](IMG/puttygen-generate.png)
 
 4. Once complete, note the fields:
    - **Public key** (for pasting into SSDNodes)
