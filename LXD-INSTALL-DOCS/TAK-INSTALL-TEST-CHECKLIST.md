@@ -63,7 +63,7 @@ LXD Storage Pool:
 ```bash
 lxc storage list
 ```
- - Shows default pool with STATE = CREATED
+ - Shows `default` pool with STATE = CREATED
 
 ---
 ## 5.3 Container Creation
@@ -209,19 +209,19 @@ Installer Running:
 
 Installation Progress Indicators:
 
- - ✓ Container networking verified (LXD mode)
- - [1/8] Prerequisite Checks Completed
- - [2/8] JVM Task Complete
- - [3/8] Debian System detected
- - [4/8] PostgreSQL and PostGIS Task Complete
- - ✓ PostgreSQL verified and running (LXD mode)
- - [5/8] Java-OpenJDK Task Complete
- - [6/8] Installation of takserver.deb Task Complete
+ - `✓ Container networking verified` (LXD mode)
+ - `[1/8] Prerequisite Checks Completed`
+ - `[2/8] JVM Task Complete`
+ - `[3/8] Debian System detected`
+ - `[4/8] PostgreSQL and PostGIS Task Complete`
+ - `✓ PostgreSQL verified and running` (LXD mode)
+ - `[5/8] Java-OpenJDK Task Complete`
+ - `[6/8] Installation of takserver.deb Task Complete`
  - Let's Encrypt certificate obtained successfully
- - ✓ TAK Server service is running (LXD mode)
- - ✓ TAK Server started successfully (LXD mode)
- - ✓ Enrollment package created: /root/enrollment-default.zip (LXD mode)
- - Initialization Complete
+ - `✓ TAK Server service is running` (LXD mode)
+ - `✓ TAK Server started successfully` (LXD mode)
+ - `✓ Enrollment package created: /root/enrollment-default.zip` (LXD mode)
+ - `Initialization Complete`
 
 PostgreSQL Running:
 ```bash
@@ -469,7 +469,7 @@ If containers have no IPv4:
 1. Return to Section 5.3b
 2. Verify host firewall rules
 3. Check netplan configuration
-4. Restart containers: lxc restart CONTAINER
+4. Restart containers: `lxc restart CONTAINER`
 
 ---
 ## Success Criteria Summary
