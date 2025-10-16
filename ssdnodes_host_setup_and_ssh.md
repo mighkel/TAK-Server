@@ -24,16 +24,17 @@ This document covers:
 1. Launch PuTTYGen.  
 2. Under **Parameters**, keep defaults: RSA, 2048 bits (or increase to 4096 if desired).
    ![PuTTYGen generation screen](IMG/puttygen-generate.png)
-3. Click **Generate**, and move the mouse randomly in the blank area to generate entropy.
-   
-   ![PuTTYGen key fields](IMG/puttygen-key-field.png)
-   
+3. Click **Generate**, and move the mouse randomly in the blank area to generate entropy. 
+    
+   ![PuTTYGen key fields](IMG/puttygen-key-fields.png)
+    
 4. Once complete, note the fields:
    - **Public key** (for pasting into SSDNodes)
    - **Key fingerprint**
-   - **Key comment**
-
-
+   - **Key comment** 
+ 
+![PuTTYGen key fields](IMG/puttygen-key-fields2.png)
+ 
 
 5. *(Optional)* Enter a **Key passphrase** for additional security.  
 6. Click **Save public key** and **Save private key**, naming them with your convention, e.g.:
