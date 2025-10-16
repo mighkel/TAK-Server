@@ -219,10 +219,20 @@ Notes:
 ### 5.2 Install and initialize LXD
 
 ```bash
-# Install LXD via snap
+# Install LXD via snap (may already be installed)
 sudo snap install lxd
+
+# Add current user to lxd group
+sudo usermod -aG lxd $USER
+newgrp lxd
+
+# Initialize LXD (use --auto for defaults)
 sudo lxd init --auto
-# The --auto initialises with defaults (lxdbr0). You can re-run `sudo lxd init` to customize storage/backing.
+# Note: If lxdbr0 already exists, this is fine - it will use the existing bridge
+
+# Verify LXD is ready
+lxc network list
+# Should show lxdbr0
 ```
 
 If you prefer bridged networking (bridge to host interface for public IPs), re-run `sudo lxd init` interactively and choose a bridged profile.
