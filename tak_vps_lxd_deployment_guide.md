@@ -270,24 +270,31 @@ lxc launch ubuntu:22.04 tak
 lxc launch ubuntu:22.04 web
 lxc launch ubuntu:22.04 rtsptak
 
-# Wait for DHCP to assign IPs
-sleep 15
+# Wait for containers to start
+sleep 10
 
-# Check IPs
+# Check they're running (will only show IPv6 initially)
 lxc list
 ```
-
-**Important:** Containers should automatically receive IPv4 addresses via DHCP from the LXD bridge (`lxdbr0`). If they don't show IPv4 addresses after ~30 seconds, there may be a DHCP issue, but this is rare with a fresh LXD installation.
-
-**Record your container IPs** - you'll need them for HAProxy configuration. They will be in the format `10.x.x.x` based on your bridge's network range.
-
-**💡 Note:** Do NOT manually assign static IPs unless DHCP completely fails. DHCP is simpler and works reliably.
 
 ### 5.3.1 Fix Container DNS (Required with UFW)
 
 When UFW is enabled, containers need DNS configured properly:
 ```bash
-# Disable systemd-resolved in all containers and set static DNS
+# Assign static IPs and routes
+lxc exec haproxy -- ip addr add 10.86.10.10/24 dev eth0
+lxc exec haproxy -- ip route add default via 10.86.10.1
+
+lxc exec tak -- ip addr add 10.86.10.11/24 dev eth0
+lxc exec tak -- ip route add default via 10.86.10.1
+
+lxc exec web -- ip addr add 10.86.10.12/24 dev eth0
+lxc exec web -- ip route add default via 10.86.10.1
+
+lxc exec rtsptak -- ip addr add 10.86.10.13/24 dev eth0
+lxc exec rtsptak -- ip route add default via 10.86.10.1
+
+# Disable systemd-resolved and set static DNS
 for container in haproxy tak web rtsptak; do
   lxc exec $container -- systemctl disable systemd-resolved
   lxc exec $container -- systemctl stop systemd-resolved
@@ -296,58 +303,129 @@ for container in haproxy tak web rtsptak; do
   lxc exec $container -- bash -c "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf"
 done
 
-# Verify DNS works
+# Verify networking
+lxc list
+lxc exec haproxy -- ping -c 2 8.8.8.8
 lxc exec tak -- nslookup archive.ubuntu.com
-lxc exec tak -- apt update
 ```
 
-**Note:** You may see `chattr: Operation not permitted` errors - these are harmless and can be ignored.
+### 5.3.2 Make Static IPs Permanent with Netplan
+
+Create netplan configuration to persist IPs across reboots:
+```
+# HAProxy (10.86.10.10)
+lxc exec haproxy -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.86.10.10/24]
+      routes:
+        - to: default
+          via: 10.86.10.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# TAK (10.86.10.11)
+lxc exec tak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.86.10.11/24]
+      routes:
+        - to: default
+          via: 10.86.10.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# Web (10.86.10.12)
+lxc exec web -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.86.10.12/24]
+      routes:
+        - to: default
+          via: 10.86.10.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# RTSPTAK (10.86.10.13)
+lxc exec rtsptak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses: [10.86.10.13/24]
+      routes:
+        - to: default
+          via: 10.86.10.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+EOF'
+
+# Apply netplan configurations
+for container in haproxy tak web rtsptak; do
+  lxc exec $container -- chmod 600 /etc/netplan/10-lxc.yaml
+  lxc exec $container -- netplan apply
+done
+```
+Note: You may see "WARNING: Cannot call Open vSwitch" messages - these are harmless.
+Container IP Summary:
+
+- `haproxy: 10.86.10.10`
+- `tak: 10.86.10.11`
+- `web: 10.86.10.12`
+- `rtsptak: 10.86.10.13`
+
+
 
 ### 5.4 Prepare containers (common steps)
 
 ```bash
-lxc exec haproxy -- bash -c "apt update && apt upgrade -y"
-# create admin user inside haproxy to match host sudo user (optional)
-lxc exec haproxy -- useradd -m -s /bin/bash takadmin || true
-lxc exec haproxy -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
-# copy your public key from host
-lxc file push ~/.ssh/id_rsa.pub haproxy/home/takadmin/.ssh/authorized_keys --mode=0600
-lxc exec haproxy -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
-
-lxc exec tak -- bash -c "apt update && apt upgrade -y"
-# create admin user inside tak to match host sudo user (optional)
-lxc exec tak -- useradd -m -s /bin/bash takadmin || true
-lxc exec tak -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
-# copy your public key from host
-lxc file push ~/.ssh/id_rsa.pub tak/home/takadmin/.ssh/authorized_keys --mode=0600
-lxc exec tak -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
-
-lxc exec rtsp -- bash -c "apt update && apt upgrade -y"
-# create admin user inside rtsp to match host sudo user (optional)
-lxc exec rtsp -- useradd -m -s /bin/bash takadmin || true
-lxc exec rtsp -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
-# copy your public key from host
-lxc file push ~/.ssh/id_rsa.pub rtsp/home/takadmin/.ssh/authorized_keys --mode=0600
-lxc exec rtsp -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
-
-lxc exec web -- bash -c "apt update && apt upgrade -y"
-# create admin user inside web to match host sudo user (optional)
-lxc exec web -- useradd -m -s /bin/bash takadmin || true
-lxc exec web -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
-# copy your public key from host
-lxc file push ~/.ssh/id_rsa.pub web/home/takadmin/.ssh/authorized_keys --mode=0600
-lxc exec web -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
-
-# Install basic utilities in web
-lxc exec web -- apt install -y vim curl wget unzip ufw
-# Enable UFW inside web if you want per-web firewalling
-lxc exec web -- ufw allow ssh && lxc exec web -- ufw enable
+# Update all containers
+for container in haproxy tak web rtsptak; do
+  lxc exec $container -- bash -c "apt update && apt upgrade -y"
+  lxc exec $container -- apt install -y vim curl wget unzip
+done
 ```
+
+Optional: Create admin user in containers
+If you want to SSH directly into containers (not required):
+
+```bash
+# Create takadmin user in each container
+for container in haproxy tak web rtsptak; do
+  lxc exec $container -- useradd -m -s /bin/bash takadmin || true
+  lxc exec $container -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
+done
+
+# Note: Copying SSH keys requires the key to exist on the host
+# Skip this step if you don't need direct SSH access to containers
+```
+
+Note: For most deployments, you don't need SSH access inside containers since you can use `lxc exec`.
 
 ### 5.5 HAProxy container: install & full config
 
-`haproxy` is the single public-facing reverse proxy. We'll install HAProxy and configure SNI/TCP passthrough for TAK and RTSP.
+`haproxy` is the single public-facing reverse proxy that handles all incoming traffic to your VPS. We'll install HAProxy and configure SNI/TCP passthrough for TAK ports and RTSP, allowing SSL/TLS connections to pass through directly to the TAK container.
 
+**What HAProxy does:**
+- Routes port 80 traffic to the web container
+- Forwards Let's Encrypt challenges to TAK for certificate validation
+- Passes through encrypted TAK traffic (ports 8089 and 8443) without decryption
+- Routes RTSP traffic (port 8554) to the MediaMTX container
+
+Install HAProxy in the haproxy container:
 ```bash
 lxc exec haproxy -- apt install -y haproxy certbot
 ```
