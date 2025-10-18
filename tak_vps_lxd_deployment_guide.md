@@ -207,6 +207,30 @@ sudo ufw allow 8443/tcp
 sudo ufw allow 8554/tcp
 echo "y" | sudo ufw enable
 
+# Configure UFW to allow container traffic
+sudo nano /etc/default/ufw
+# Change: DEFAULT_FORWARD_POLICY="ACCEPT"
+
+# Edit UFW before rules
+sudo nano /etc/ufw/before.rules
+# Add NAT rules at the TOP (before *filter):
+
+# NAT table rules for LXD containers
+*nat
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s 10.86.10.0/24 ! -d 10.86.10.0/24 -j MASQUERADE
+COMMIT
+
+# Then find the "# ok icmp codes for INPUT" section and add BEFORE it:
+
+# Allow all traffic from LXD containers
+-A ufw-before-forward -i lxdbr0 -j ACCEPT
+-A ufw-before-forward -o lxdbr0 -j ACCEPT
+
+# Reload UFW
+sudo ufw disable
+sudo ufw enable
+
 # Enable Fail2ban for basic SSH protection
 sudo systemctl enable --now fail2ban
 # Default jail protects SSH only; configuration file: /etc/fail2ban/jail.local
@@ -240,173 +264,44 @@ If you prefer bridged networking (bridge to host interface for public IPs), re-r
 ### 5.3 Create containers (Ubuntu 22.04 images)
 
 We'll create 4 containers. Adjust names to your naming standard.
-
 ```bash
 lxc launch ubuntu:22.04 haproxy
 lxc launch ubuntu:22.04 tak
 lxc launch ubuntu:22.04 web
 lxc launch ubuntu:22.04 rtsptak
-```
 
-Check IPs:
+# Wait for DHCP to assign IPs
+sleep 15
 
-```bash
+# Check IPs
 lxc list
 ```
 
-Record the containers' internal IPs (e.g. 10.13.x.x) — we'll use them in HAProxy config.
+**Important:** Containers should automatically receive IPv4 addresses via DHCP from the LXD bridge (`lxdbr0`). If they don't show IPv4 addresses after ~30 seconds, there may be a DHCP issue, but this is rare with a fresh LXD installation.
 
-### 5.3b Troubleshooting: Container Networking Issues
+**Record your container IPs** - you'll need them for HAProxy configuration. They will be in the format `10.x.x.x` based on your bridge's network range.
 
-If your containers launch with only IPv6 addresses and no IPv4, follow these steps to fix networking.
+**💡 Note:** Do NOT manually assign static IPs unless DHCP completely fails. DHCP is simpler and works reliably.
 
-#### Manually assign IPv4 addresses
+### 5.3.1 Fix Container DNS (Required with UFW)
+
+When UFW is enabled, containers need DNS configured properly:
 ```bash
-# Assign static IPs to each container
-lxc exec haproxy -- ip addr add 10.206.248.10/24 dev eth0
-lxc exec haproxy -- ip route add default via 10.206.248.1
-
-lxc exec tak -- ip addr add 10.206.248.11/24 dev eth0
-lxc exec tak -- ip route add default via 10.206.248.1
-
-lxc exec web -- ip addr add 10.206.248.12/24 dev eth0
-lxc exec web -- ip route add default via 10.206.248.1
-
-lxc exec rtsptak -- ip addr add 10.206.248.13/24 dev eth0
-lxc exec rtsptak -- ip route add default via 10.206.248.1
-
-# Add DNS servers to each container
+# Disable systemd-resolved in all containers and set static DNS
 for container in haproxy tak web rtsptak; do
+  lxc exec $container -- systemctl disable systemd-resolved
+  lxc exec $container -- systemctl stop systemd-resolved
+  lxc exec $container -- rm /etc/resolv.conf
   lxc exec $container -- bash -c "echo 'nameserver 8.8.8.8' > /etc/resolv.conf"
   lxc exec $container -- bash -c "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf"
 done
 
-# Verify containers now show IPv4
-lxc list
+# Verify DNS works
+lxc exec tak -- nslookup archive.ubuntu.com
+lxc exec tak -- apt update
 ```
 
-#### Fix host firewall to allow container traffic
-```bash
-# Allow DNS queries from containers
-sudo iptables -I FORWARD -i lxdbr0 -p udp --dport 53 -j ACCEPT
-sudo iptables -I FORWARD -i lxdbr0 -p tcp --dport 53 -j ACCEPT
-
-# Allow all outbound traffic from containers
-sudo iptables -I FORWARD -i lxdbr0 -j ACCEPT
-sudo iptables -I FORWARD -o lxdbr0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-# Enable IP forwarding
-sudo sysctl -w net.ipv4.ip_forward=1
-echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
-
-# Make iptables rules persistent
-sudo apt install -y iptables-persistent
-# When prompted "Save current IPv4 rules?" select: <Yes>
-# When prompted "Save current IPv6 rules?" select: <Yes>
-sudo netfilter-persistent save
-```
-
-#### Make static IPs permanent with netplan
-
-Create netplan configuration for each container:
-```bash
-# HAProxy container (10.206.248.10)
-lxc exec haproxy -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: false
-      addresses: [10.206.248.10/24]
-      routes:
-        - to: default
-          via: 10.206.248.1
-      nameservers:
-        addresses: [8.8.8.8, 8.8.4.4]
-EOF'
-
-# TAK container (10.206.248.11)
-lxc exec tak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: false
-      addresses: [10.206.248.11/24]
-      routes:
-        - to: default
-          via: 10.206.248.1
-      nameservers:
-        addresses: [8.8.8.8, 8.8.4.4]
-EOF'
-
-# Web container (10.206.248.12)
-lxc exec web -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: false
-      addresses: [10.206.248.12/24]
-      routes:
-        - to: default
-          via: 10.206.248.1
-      nameservers:
-        addresses: [8.8.8.8, 8.8.4.4]
-EOF'
-
-# RTSPTAK container (10.206.248.13)
-lxc exec rtsptak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: false
-      addresses: [10.206.248.13/24]
-      routes:
-        - to: default
-          via: 10.206.248.1
-      nameservers:
-        addresses: [8.8.8.8, 8.8.4.4]
-EOF'
-
-# Fix file permissions and apply netplan
-for container in haproxy tak web rtsptak; do
-  lxc exec $container -- chmod 600 /etc/netplan/10-lxc.yaml
-  lxc exec $container -- netplan apply
-done
-```
-### Fix file permissions and apply netplan
-```
-for container in haproxy tak web rtsptak; do
-  lxc exec $container -- chmod 600 /etc/netplan/10-lxc.yaml
-  lxc exec $container -- netplan apply
-done
-```
-### Note: You may see "WARNING: Cannot call Open vSwitch" messages
-### These are harmless - Open vSwitch is not used in this setup
-
-#### Verify networking is working
-```bash
-# Check IPs are assigned
-lxc list
-
-# Test DNS resolution
-lxc exec haproxy -- nslookup archive.ubuntu.com
-
-# Test package updates
-lxc exec haproxy -- apt update
-```
-
-Expected result: All containers show IPv4 addresses and can successfully update packages.
-
-**Container IP Summary:**
-- haproxy: 10.206.248.10
-- tak: 10.206.248.11
-- web: 10.206.248.12
-- rtsptak: 10.206.248.13
-
----
+**Note:** You may see `chattr: Operation not permitted` errors - these are harmless and can be ignored.
 
 ### 5.4 Prepare containers (common steps)
 
@@ -441,7 +336,7 @@ Now create `/etc/haproxy/haproxy.cfg` inside the `haproxy` container with the co
 
 ```
 # Create the config file on the host first
-cat > /tmp/haproxy.cfg <<'EOF'
+cat > ~/haproxy.cfg <<'EOF'
 global
     log /dev/log    local0
     log /dev/log    local1 notice
@@ -476,11 +371,11 @@ frontend http-in
 
 backend tak-acme-backend
     mode http
-    server tak 10.206.248.11:80
+    server tak 10.86.10.243:80
 
 backend web-backend
     mode http
-    server web1 10.206.248.12:80
+    server web1 10.86.10.121:80
 
 # HTTPS SNI passthrough for TAK client (TCP/SSL) on 8089
 frontend tak-client
@@ -494,7 +389,7 @@ frontend tak-client
 backend tak-client-backend
     mode tcp
     option ssl-hello-chk
-    server tak 10.206.248.11:8089
+    server tak 10.86.10.243:8089
 
 # TAK server Web UI (HTTPS) on 8443 - passthrough
 frontend tak-server
@@ -508,7 +403,7 @@ frontend tak-server
 backend tak-server-backend
     mode tcp
     option ssl-hello-chk
-    server takweb 10.206.248.11:8443
+    server takweb 10.86.10.243:8443
 
 # RTSP frontend (TCP) for MediaMTX on port 8554
 frontend rtsp-in
@@ -520,7 +415,7 @@ frontend rtsp-in
 
 backend rtsptak-backend
     mode tcp
-    server rtsptak 10.206.248.13:8554 check
+    server rtsptak 10.86.10.153:8554 check
 
 # Stats endpoint
 listen stats
@@ -532,7 +427,20 @@ listen stats
 EOF
 
 # Push the file to the haproxy container
-lxc file push /tmp/haproxy.cfg haproxy/etc/haproxy/haproxy.cfg
+lxc file push ~/haproxy.cfg haproxy/etc/haproxy/haproxy.cfg
+
+# Verify the config
+lxc exec haproxy -- cat /etc/haproxy/haproxy.cfg
+
+# Test the config syntax
+lxc exec haproxy -- haproxy -c -f /etc/haproxy/haproxy.cfg
+
+# Restart HAProxy
+lxc exec haproxy -- systemctl restart haproxy
+lxc exec haproxy -- systemctl enable haproxy
+
+# Check status
+lxc exec haproxy -- systemctl status haproxy
 ```
 
 Notes:
