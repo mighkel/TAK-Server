@@ -314,12 +314,6 @@ lxc exec haproxy -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:taka
 lxc file push ~/.ssh/id_rsa.pub haproxy/home/takadmin/.ssh/authorized_keys --mode=0600
 lxc exec haproxy -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
 
-# Install basic utilities in haproxy
-lxc exec haproxy -- apt install -y vim curl wget unzip ufw
-# Enable UFW inside haproxy if you want per-haproxy firewalling
-lxc exec haproxy -- ufw allow ssh && lxc exec haproxy -- ufw enable
-
-
 lxc exec tak -- bash -c "apt update && apt upgrade -y"
 # create admin user inside tak to match host sudo user (optional)
 lxc exec tak -- useradd -m -s /bin/bash takadmin || true
@@ -328,12 +322,6 @@ lxc exec tak -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin
 lxc file push ~/.ssh/id_rsa.pub tak/home/takadmin/.ssh/authorized_keys --mode=0600
 lxc exec tak -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
 
-# Install basic utilities in tak
-lxc exec tak -- apt install -y vim curl wget unzip ufw
-# Enable UFW inside tak if you want per-tak firewalling
-lxc exec tak -- ufw allow ssh && lxc exec tak -- ufw enable
-
-
 lxc exec rtsp -- bash -c "apt update && apt upgrade -y"
 # create admin user inside rtsp to match host sudo user (optional)
 lxc exec rtsp -- useradd -m -s /bin/bash takadmin || true
@@ -341,12 +329,6 @@ lxc exec rtsp -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmi
 # copy your public key from host
 lxc file push ~/.ssh/id_rsa.pub rtsp/home/takadmin/.ssh/authorized_keys --mode=0600
 lxc exec rtsp -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
-
-# Install basic utilities in rtsp
-lxc exec rtsp -- apt install -y vim curl wget unzip ufw
-# Enable UFW inside rtsp if you want per-rtsp firewalling
-lxc exec rtsp -- ufw allow ssh && lxc exec rtsp -- ufw enable
-
 
 lxc exec web -- bash -c "apt update && apt upgrade -y"
 # create admin user inside web to match host sudo user (optional)
