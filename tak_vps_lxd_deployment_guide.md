@@ -305,21 +305,61 @@ lxc exec tak -- apt update
 
 ### 5.4 Prepare containers (common steps)
 
-Run these for each container (`haproxy`, `tak`, `web`, `rtsptak`). Replace `CONTAINER` with the container name.
-
 ```bash
-lxc exec CONTAINER -- bash -c "apt update && apt upgrade -y"
-# create admin user inside container to match host sudo user (optional)
-lxc exec CONTAINER -- useradd -m -s /bin/bash takadmin || true
-lxc exec CONTAINER -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
+lxc exec haproxy -- bash -c "apt update && apt upgrade -y"
+# create admin user inside haproxy to match host sudo user (optional)
+lxc exec haproxy -- useradd -m -s /bin/bash takadmin || true
+lxc exec haproxy -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
 # copy your public key from host
-lxc file push ~/.ssh/id_rsa.pub CONTAINER/home/takadmin/.ssh/authorized_keys --mode=0600
-lxc exec CONTAINER -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
+lxc file push ~/.ssh/id_rsa.pub haproxy/home/takadmin/.ssh/authorized_keys --mode=0600
+lxc exec haproxy -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
 
-# Install basic utilities in container
-lxc exec CONTAINER -- apt install -y vim curl wget unzip ufw
-# Enable UFW inside container if you want per-container firewalling
-lxc exec CONTAINER -- ufw allow ssh && lxc exec CONTAINER -- ufw enable
+# Install basic utilities in haproxy
+lxc exec haproxy -- apt install -y vim curl wget unzip ufw
+# Enable UFW inside haproxy if you want per-haproxy firewalling
+lxc exec haproxy -- ufw allow ssh && lxc exec haproxy -- ufw enable
+
+
+lxc exec tak -- bash -c "apt update && apt upgrade -y"
+# create admin user inside tak to match host sudo user (optional)
+lxc exec tak -- useradd -m -s /bin/bash takadmin || true
+lxc exec tak -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
+# copy your public key from host
+lxc file push ~/.ssh/id_rsa.pub tak/home/takadmin/.ssh/authorized_keys --mode=0600
+lxc exec tak -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
+
+# Install basic utilities in tak
+lxc exec tak -- apt install -y vim curl wget unzip ufw
+# Enable UFW inside tak if you want per-tak firewalling
+lxc exec tak -- ufw allow ssh && lxc exec tak -- ufw enable
+
+
+lxc exec rtsp -- bash -c "apt update && apt upgrade -y"
+# create admin user inside rtsp to match host sudo user (optional)
+lxc exec rtsp -- useradd -m -s /bin/bash takadmin || true
+lxc exec rtsp -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
+# copy your public key from host
+lxc file push ~/.ssh/id_rsa.pub rtsp/home/takadmin/.ssh/authorized_keys --mode=0600
+lxc exec rtsp -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
+
+# Install basic utilities in rtsp
+lxc exec rtsp -- apt install -y vim curl wget unzip ufw
+# Enable UFW inside rtsp if you want per-rtsp firewalling
+lxc exec rtsp -- ufw allow ssh && lxc exec rtsp -- ufw enable
+
+
+lxc exec web -- bash -c "apt update && apt upgrade -y"
+# create admin user inside web to match host sudo user (optional)
+lxc exec web -- useradd -m -s /bin/bash takadmin || true
+lxc exec web -- bash -c "mkdir -p /home/takadmin/.ssh && chown takadmin:takadmin /home/takadmin/.ssh"
+# copy your public key from host
+lxc file push ~/.ssh/id_rsa.pub web/home/takadmin/.ssh/authorized_keys --mode=0600
+lxc exec web -- chown takadmin:takadmin /home/takadmin/.ssh/authorized_keys
+
+# Install basic utilities in web
+lxc exec web -- apt install -y vim curl wget unzip ufw
+# Enable UFW inside web if you want per-web firewalling
+lxc exec web -- ufw allow ssh && lxc exec web -- ufw enable
 ```
 
 ### 5.5 HAProxy container: install & full config
