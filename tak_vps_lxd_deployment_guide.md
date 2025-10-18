@@ -471,11 +471,11 @@ frontend http-in
 
 backend tak-acme-backend
     mode http
-    server tak 10.86.10.243:80
+    server tak 10.86.10.11:80
 
 backend web-backend
     mode http
-    server web1 10.86.10.121:80
+    server web1 10.86.10.12:80
 
 # HTTPS SNI passthrough for TAK client (TCP/SSL) on 8089
 frontend tak-client
@@ -489,7 +489,7 @@ frontend tak-client
 backend tak-client-backend
     mode tcp
     option ssl-hello-chk
-    server tak 10.86.10.243:8089
+    server tak 10.86.10.11:8089
 
 # TAK server Web UI (HTTPS) on 8443 - passthrough
 frontend tak-server
@@ -503,7 +503,7 @@ frontend tak-server
 backend tak-server-backend
     mode tcp
     option ssl-hello-chk
-    server takweb 10.86.10.243:8443
+    server takweb 10.86.10.11:8443
 
 # RTSP frontend (TCP) for MediaMTX on port 8554
 frontend rtsp-in
@@ -515,7 +515,7 @@ frontend rtsp-in
 
 backend rtsptak-backend
     mode tcp
-    server rtsptak 10.86.10.153:8554 check
+    server rtsptak 10.86.10.13:8554 check
 
 # Stats endpoint
 listen stats
