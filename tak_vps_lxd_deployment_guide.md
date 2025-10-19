@@ -61,7 +61,7 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 ## 3. Prerequisites (host & LXD)
 
 - SSDNodes VPS running Ubuntu 22.04 LTS (minimal install). Make sure you can SSH in.
-- Domain name with DNS A records for `tak.pinenut.tech`, `web.pinenut.tech`, `rtsptak.pinenut.tech` pointing to the VPS public IP.
+- Domain name with DNS A records for `tak.[DOMAIN.TLD]`, `web.[DOMAIN.TLD]`, `rtsptak.[DOMAIN.TLD]` pointing to the VPS public IP.
 - LXD installed (snap) and basic knowledge of `lxc` commands. This guide uses `lxd`/`lxc` commands.
 - You already have `installTAK` (myTeckNet) files; place them where the guide indicates (we show commands to copy into the tak container).
 
@@ -246,13 +246,27 @@ newgrp lxd
 # Initialize LXD (use --auto for defaults)
 sudo lxd init --auto
 # Note: If lxdbr0 already exists, this is fine - it will use the existing bridge
-
-# Verify LXD is ready
-lxc network list
-# Should show lxdbr0
 ```
 
-If you prefer bridged networking (bridge to host interface for public IPs), re-run `sudo lxd init` interactively and choose a bridged profile.
+### 5.2.1 Identify Your LXD Bridge Network
+
+Before configuring containers, identify your LXD bridge subnet:
+```bash
+lxc network list
+```
+
+Look for the `lxdbr0` IPv4 address. Example output:
+```
+| lxdbr0 | bridge | YES | 10.251.149.1/24 | ... |
+```
+
+**Record the first three octets** (e.g., `10.251.149`). You'll use this throughout the guide.
+
+💡 **Pro tip:** Copy all commands from sections 5.3.1, 5.3.2, and 5.5 into Notepad (or your text editor). Use Find & Replace:
+- Find: `XXX.XXX`
+- Replace with: Your middle two octets (e.g., `251.149`)
+
+Then copy/paste the customized commands back into your terminal.
 
 ### 5.3 Create containers (Ubuntu 22.04 images)
 
@@ -270,22 +284,24 @@ sleep 10
 lxc list
 ```
 
-### 5.3.1 Fix Container DNS (Required with UFW)
+### 5.3.1 Configure Static IPs and DNS
 
-When UFW is enabled, containers need DNS configured properly:
+**Important:** Replace `XXX.XXX` in all commands below with your bridge subnet from section 5.2.1.
+
+Assign static IP addresses and configure DNS for each container:
 ```bash
 # Assign static IPs and routes
-lxc exec haproxy -- ip addr add 10.86.10.10/24 dev eth0
-lxc exec haproxy -- ip route add default via 10.86.10.1
+lxc exec haproxy -- ip addr add 10.XXX.XXX.10/24 dev eth0
+lxc exec haproxy -- ip route add default via 10.XXX.XXX.1
 
-lxc exec tak -- ip addr add 10.86.10.11/24 dev eth0
-lxc exec tak -- ip route add default via 10.86.10.1
+lxc exec tak -- ip addr add 10.XXX.XXX.11/24 dev eth0
+lxc exec tak -- ip route add default via 10.XXX.XXX.1
 
-lxc exec web -- ip addr add 10.86.10.12/24 dev eth0
-lxc exec web -- ip route add default via 10.86.10.1
+lxc exec web -- ip addr add 10.XXX.XXX.12/24 dev eth0
+lxc exec web -- ip route add default via 10.XXX.XXX.1
 
-lxc exec rtsptak -- ip addr add 10.86.10.13/24 dev eth0
-lxc exec rtsptak -- ip route add default via 10.86.10.1
+lxc exec rtsptak -- ip addr add 10.XXX.XXX.13/24 dev eth0
+lxc exec rtsptak -- ip route add default via 10.XXX.XXX.1
 
 # Disable systemd-resolved and set static DNS
 for container in haproxy tak web rtsptak; do
@@ -302,66 +318,70 @@ lxc exec haproxy -- ping -c 2 8.8.8.8
 lxc exec tak -- nslookup archive.ubuntu.com
 ```
 
+Expected result: All containers show their static IPs and can resolve DNS.
+
 ### 5.3.2 Make Static IPs Permanent with Netplan
 
+**Important:** Replace `XXX.XXX` in all commands below with your bridge subnet from section 5.2.1.
+
 Create netplan configuration to persist IPs across reboots:
-```
-# HAProxy (10.86.10.10)
+```bash
+# HAProxy (10.XXX.XXX.10)
 lxc exec haproxy -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
 network:
   version: 2
   ethernets:
     eth0:
       dhcp4: false
-      addresses: [10.86.10.10/24]
+      addresses: [10.XXX.XXX.10/24]
       routes:
         - to: default
-          via: 10.86.10.1
+          via: 10.XXX.XXX.1
       nameservers:
         addresses: [8.8.8.8, 8.8.4.4]
 EOF'
 
-# TAK (10.86.10.11)
+# TAK (10.XXX.XXX.11)
 lxc exec tak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
 network:
   version: 2
   ethernets:
     eth0:
       dhcp4: false
-      addresses: [10.86.10.11/24]
+      addresses: [10.XXX.XXX.11/24]
       routes:
         - to: default
-          via: 10.86.10.1
+          via: 10.XXX.XXX.1
       nameservers:
         addresses: [8.8.8.8, 8.8.4.4]
 EOF'
 
-# Web (10.86.10.12)
+# Web (10.XXX.XXX.12)
 lxc exec web -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
 network:
   version: 2
   ethernets:
     eth0:
       dhcp4: false
-      addresses: [10.86.10.12/24]
+      addresses: [10.XXX.XXX.12/24]
       routes:
         - to: default
-          via: 10.86.10.1
+          via: 10.XXX.XXX.1
       nameservers:
         addresses: [8.8.8.8, 8.8.4.4]
 EOF'
 
-# RTSPTAK (10.86.10.13)
+# RTSPTAK (10.XXX.XXX.13)
 lxc exec rtsptak -- bash -c 'cat > /etc/netplan/10-lxc.yaml <<EOF
 network:
   version: 2
   ethernets:
     eth0:
       dhcp4: false
-      addresses: [10.86.10.13/24]
+      addresses: [10.XXX.XXX.13/24]
       routes:
         - to: default
-          via: 10.86.10.1
+          via: 10.XXX.XXX.1
       nameservers:
         addresses: [8.8.8.8, 8.8.4.4]
 EOF'
@@ -372,15 +392,14 @@ for container in haproxy tak web rtsptak; do
   lxc exec $container -- netplan apply
 done
 ```
-Note: You may see "WARNING: Cannot call Open vSwitch" messages - these are harmless.
-Container IP Summary:
 
-- `haproxy: 10.86.10.10`
-- `tak: 10.86.10.11`
-- `web: 10.86.10.12`
-- `rtsptak: 10.86.10.13`
+**Note:** You may see "WARNING: Cannot call Open vSwitch" messages - these are harmless.
 
-
+**Container IP Summary:**
+- haproxy: `10.XXX.XXX.10`
+- tak: `10.XXX.XXX.11`
+- web: `10.XXX.XXX.12`
+- rtsptak: `10.XXX.XXX.13`
 
 ### 5.4 Prepare containers (common steps)
 
@@ -427,7 +446,8 @@ Now create `/etc/haproxy/haproxy.cfg` inside the `haproxy` container with the co
 
 **Full HAProxy config (example)** — adjust domain names and backend IPs to your `lxc list` values.
 
-```
+**Important:** Replace `XXX.XXX` in the backend server lines below with your bridge subnet from section 5.2.1.
+```bash
 # Create the config file on the host first
 cat > ~/haproxy.cfg <<'EOF'
 global
@@ -458,17 +478,17 @@ frontend http-in
     use_backend tak-acme-backend if is_acme_challenge
     
     # Normal web traffic
-    acl host_web hdr(host) -i web.pinenut.tech
+    acl host_web hdr(host) -i web.[DOMAIN.TLD]
     use_backend web-backend if host_web
     default_backend web-backend
 
 backend tak-acme-backend
     mode http
-    server tak 10.86.10.11:80
+    server tak 10.XXX.XXX.11:80
 
 backend web-backend
     mode http
-    server web1 10.86.10.12:80
+    server web1 10.XXX.XXX.12:80
 
 # HTTPS SNI passthrough for TAK client (TCP/SSL) on 8089
 frontend tak-client
@@ -476,13 +496,13 @@ frontend tak-client
     mode tcp
     tcp-request inspect-delay 5s
     tcp-request content accept if { req.ssl_hello_type 1 }
-    acl host_tak req.ssl_sni -i tak.pinenut.tech
+    acl host_tak req.ssl_sni -i tak.[DOMAIN.TLD]
     use_backend tak-client-backend if host_tak
 
 backend tak-client-backend
     mode tcp
     option ssl-hello-chk
-    server tak 10.86.10.11:8089
+    server tak 10.XXX.XXX.11:8089
 
 # TAK server Web UI (HTTPS) on 8443 - passthrough
 frontend tak-server
@@ -490,13 +510,13 @@ frontend tak-server
     mode tcp
     tcp-request inspect-delay 5s
     tcp-request content accept if { req.ssl_hello_type 1 }
-    acl host_takreq req.ssl_sni -i tak.pinenut.tech
+    acl host_takreq req.ssl_sni -i tak.[DOMAIN.TLD]
     use_backend tak-server-backend if host_takreq
 
 backend tak-server-backend
     mode tcp
     option ssl-hello-chk
-    server takweb 10.86.10.11:8443
+    server takweb 10.XXX.XXX.11:8443
 
 # RTSP frontend (TCP) for MediaMTX on port 8554
 frontend rtsp-in
@@ -508,7 +528,7 @@ frontend rtsp-in
 
 backend rtsptak-backend
     mode tcp
-    server rtsptak 10.86.10.13:8554 check
+    server rtsptak 10.XXX.XXX.13:8554 check
 
 # Stats endpoint
 listen stats
@@ -522,17 +542,11 @@ EOF
 # Push the file to the haproxy container
 lxc file push ~/haproxy.cfg haproxy/etc/haproxy/haproxy.cfg
 
-# Verify the config
+# Verify and restart
 lxc exec haproxy -- cat /etc/haproxy/haproxy.cfg
-
-# Test the config syntax
 lxc exec haproxy -- haproxy -c -f /etc/haproxy/haproxy.cfg
-
-# Restart HAProxy
 lxc exec haproxy -- systemctl restart haproxy
 lxc exec haproxy -- systemctl enable haproxy
-
-# Check status
 lxc exec haproxy -- systemctl status haproxy
 ```
 
@@ -671,7 +685,7 @@ The installer will prompt you for:
    - Change default Cert password from atakatak? (Yes) (hwy21hwy21)
    - Name for Root CA (boisecountyroot)
    - Intermediate CA (intermediateBC)
-4. **Server FQDN** - Enter `tak.pinenut.tech`
+4. **Server FQDN** - Enter `tak.[DOMAIN.TLD]`
 5. **Let's Encrypt** - Choose YES to automatically get SSL certificates
    - Provide email for cert notifications
 6. **Connector type** - Choose SSL (not QUIC unless you need it)
@@ -875,7 +889,7 @@ Testing steps after install:
 1. Confirm HAProxy frontends are listening: `lxc exec haproxy -- ss -ltnp`.
 2. From external client, test HTTP (web) and HTTPS endpoints.
 3. Test importing `enrollmentDP.zip` into ATAK on an Android device.
-4. Test RTSP pull from MediaMTX using VLC: `rtsp://rtsptak.pinenut.tech/camera1`.
+4. Test RTSP pull from MediaMTX using VLC: `rtsp://rtsptak.[DOMAIN.TLD]/camera1`.
 
 ---
 
