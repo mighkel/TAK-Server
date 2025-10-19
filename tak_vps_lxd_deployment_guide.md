@@ -75,7 +75,20 @@ This guide is targeted at a small public-safety sandbox deployment (county / vol
 - Reasonable security hardening while preserving easy onboarding (avoid VPN requirement).
 - Provide repeatable steps so you can later publish a public repo with templates.
 
-Host: SSDNodes VPS (Ubuntu 22.04 LTS). LXD containers for isolation and snapshot/rollback convenience.
+The basis for this install:
+Host: SSDNodes VPS, Standard 32GB RAM 480GB SSD Dallas
+OS:   Ubuntu 22.04 LTS
+More: LXD containers for isolation and snapshot/rollback convenience.
+
+I use SSDNodes due to the low cost and my user experience & feedback on reliablity I have received from others I know that have used them.
+
+If you find this guide useful and you would like to try it on SSDNodes, please consider using my referral link.  I almost exclusively use my SSDNodes VPS to support my rural volunteer fire department.
+
+https://www.ssdnodes.com/manage/aff.php?aff=1554&register=true
+
+If you already have an SSDNodes account and would still like to support this work and a great cause, please consider donating to Clear Creek Volunteer Fire Department in Boise Idaho.
+
+https://www.clearcreekvfd.com/donate
 
 ---
 
