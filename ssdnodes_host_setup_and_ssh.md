@@ -31,7 +31,7 @@ This document covers:
 4. Once complete, note the fields:
    - **Public key** (for pasting into SSDNodes)
    - **Key fingerprint**
-   - **Key comment** 
+   - For SSDNodes, clear the **Key comment** field as shown 
  
 ![PuTTYGen key fields](IMG/puttygen-key-fields2.png)
  
