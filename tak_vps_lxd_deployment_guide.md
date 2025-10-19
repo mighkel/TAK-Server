@@ -10,7 +10,7 @@ This guide uses placeholder values that you MUST customize for your deployment.
 
 | Placeholder | Example | Your Value |
 |------------|---------|------------|
-| `[DOMAIN.TLD]` | `pinenut.tech` | _____________ |
+| `[DOMAIN.TLD]` | `myawesometakserver.com` | _____________ |
 | `[ADMIN_USER]` | `admin` | _____________ |
 | `[ADMIN_PASSWORD]` | `SecurePass123!` | _____________ |
 | `XXX.XXX` (in IPs) | `251.149` | _____________ (from Section 5.2.1) |
