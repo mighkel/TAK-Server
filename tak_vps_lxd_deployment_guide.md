@@ -2,6 +2,46 @@
 
 > Opinionated, practical guide for deploying a multi-container TAK Server on an Ubuntu 22.04 LTS VPS using LXD containers and HAProxy. Integrates the myTeckNet `installTAK` installer and adds MediaMTX (RTSP) support for ICU / UAS Tool testing.
 
+## 0. Before You Begin - Customize This Guide
+
+This guide uses placeholder values that you MUST customize for your deployment.
+
+### Required Placeholders to Replace:
+
+| Placeholder | Example | Your Value |
+|------------|---------|------------|
+| `[DOMAIN.TLD]` | `pinenut.tech` | _____________ |
+| `[ADMIN_USER]` | `admin` | _____________ |
+| `[ADMIN_PASSWORD]` | `SecurePass123!` | _____________ |
+| `XXX.XXX` (in IPs) | `251.149` | _____________ (from Section 5.2.1) |
+
+### ✅ Pre-Flight Checklist
+
+Before starting Section 5, verify you have:
+
+- [ ] Registered domain name
+- [ ] DNS records configured and propagated (test with `nslookup tak.[DOMAIN.TLD]`)
+- [ ] VPS provisioned with Ubuntu 22.04
+- [ ] SSH access to VPS working
+- [ ] TAK Server files downloaded from tak.gov
+- [ ] This guide customized with your values (or forked repo ready)
+
+### Two Options for Using This Guide:
+
+**Option 1: Find & Replace in Text Editor (Recommended for first-time users)**
+1. Copy this entire guide into a text editor (Notepad++, VS Code, Sublime)
+2. Use Find & Replace to customize all placeholders
+3. Save your customized version for reference
+4. Copy/paste commands from your customized guide
+
+**Option 2: Fork This Repo (Recommended for experienced users)**
+1. Fork this repository on GitHub
+2. Edit the guide in your fork with your actual values
+3. Keep your fork private (contains your domain/config details)
+4. Use your customized fork as your deployment reference
+
+⚠️ **DO NOT commit sensitive passwords to GitHub**, even in private repos. Use placeholders in your fork and keep actual passwords in a separate password manager.
+
 ---
 
 ## Table of contents
@@ -61,8 +101,12 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 ## 3. Prerequisites (host & LXD)
 
 - SSDNodes VPS running Ubuntu 22.04 LTS (minimal install). Make sure you can SSH in.
-- Domain name with DNS A records for `tak.[DOMAIN.TLD]`, `web.[DOMAIN.TLD]`, `rtsptak.[DOMAIN.TLD]` pointing to the VPS public IP.
-- LXD installed (snap) and basic knowledge of `lxc` commands. This guide uses `lxd`/`lxc` commands.
+- **Domain name registered** with DNS A records configured:
+  - `tak.[DOMAIN.TLD]` → VPS public IP
+  - `web.[DOMAIN.TLD]` → VPS public IP  
+  - `rtsptak.[DOMAIN.TLD]` → VPS public IP
+- LXD installed (snap) and basic knowledge of `lxc` commands
+- TAK Server installation files downloaded from tak.gov
 - You already have `installTAK` (myTeckNet) files; place them where the guide indicates (we show commands to copy into the tak container).
 
 ---
@@ -447,6 +491,13 @@ Now create `/etc/haproxy/haproxy.cfg` inside the `haproxy` container with the co
 **Full HAProxy config (example)** — adjust domain names and backend IPs to your `lxc list` values.
 
 **Important:** Replace `XXX.XXX` in the backend server lines below with your bridge subnet from section 5.2.1.
+
+**Security Note:** Before running these commands, edit `~/haproxy.cfg` towards the bottom of this section and replace:
+- `[ADMIN_USER]` with your desired username (e.g., `admin`)
+- `[ADMIN_PASSWORD]` with a strong password
+
+This protects the HAProxy stats page at `http://your-vps-ip:8404/haproxy_stats`
+
 ```bash
 # Create the config file on the host first
 cat > ~/haproxy.cfg <<'EOF'
@@ -536,7 +587,7 @@ listen stats
     mode http
     stats enable
     stats uri /haproxy_stats
-    stats auth admin:YourStrongPassword
+    stats auth [ADMIN_USER]:[ADMIN_PASSWORD]
 EOF
 
 # Push the file to the haproxy container
