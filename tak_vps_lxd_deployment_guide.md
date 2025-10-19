@@ -222,6 +222,7 @@ sudo chmod 600 /home/takadmin/.ssh/authorized_keys
 # Ensure your public key is one continuous line with no line breaks.
 
 # Disable root SSH and password authentication
+# Check for multiple locations in the file
 sudo nano /etc/ssh/sshd_config
 # Set:
 # PermitRootLogin no
@@ -257,6 +258,8 @@ sudo nano /etc/ufw/before.rules
 :POSTROUTING ACCEPT [0:0]
 -A POSTROUTING -s 10.XXX.XXX.0/24 ! -d 10.XXX.XXX.0/24 -j MASQUERADE
 COMMIT
+
+**Note:** Replace `XXX.XXX` with your bridge subnet from Section 5.2.1 (e.g., if your bridge is `10.251.149.1/24`, use `10.251.149.0/24`)
 
 # Then find the "# ok icmp codes for INPUT" section and add BEFORE it:
 
@@ -304,7 +307,11 @@ Look for the `lxdbr0` IPv4 address. Example output:
 | lxdbr0 | bridge | YES | 10.251.149.1/24 | ... |
 ```
 
-**Record the middle two octets** (e.g., `251.149` from `10.251.149.1`). You'll use this throughout the guide.
+**Record the middle two octets** (the 2nd and 3rd numbers). 
+
+Example: If your bridge is `10.251.149.1/24`, record `251.149`
+
+You'll replace `XXX.XXX` throughout this guide with these two numbers.
 
 💡 **Pro tip:** Copy all commands from sections 5.3.1, 5.3.2, and 5.5 into Notepad (or your text editor). Use Find & Replace:
 - Find: `XXX.XXX`
@@ -360,6 +367,13 @@ done
 lxc list
 lxc exec haproxy -- ping -c 2 8.8.8.8
 lxc exec tak -- nslookup archive.ubuntu.com
+
+# Verify all containers have IPs and can ping gateway
+for container in haproxy tak web rtsptak; do
+  echo "=== $container ==="
+  lxc exec $container -- ip addr show eth0 | grep "inet 10"
+  lxc exec $container -- ping -c 1 -W 2 10.XXX.XXX.1
+done
 ```
 
 Expected result: All containers show their static IPs and can resolve DNS.
@@ -435,6 +449,10 @@ for container in haproxy tak web rtsptak; do
   lxc exec $container -- chmod 600 /etc/netplan/10-lxc.yaml
   lxc exec $container -- netplan apply
 done
+
+# Verify DNS still works after netplan apply
+lxc exec tak -- nslookup google.com
+# Should resolve successfully
 ```
 
 **Note:** You may see "WARNING: Cannot call Open vSwitch" messages - these are harmless.
@@ -456,6 +474,7 @@ done
 ```
 
 Optional: Create admin user in containers
+**Note:** Most users can skip this section. The `lxc exec` command provides shell access without SSH.
 If you want to SSH directly into containers (not required):
 
 ```bash
@@ -491,6 +510,10 @@ lxc exec haproxy -- apt update
 
 # Install HAProxy and certbot
 lxc exec haproxy -- apt install -y haproxy certbot
+
+# Verify installation
+lxc exec haproxy -- haproxy -v
+lxc exec haproxy -- certbot --version
 ```
 
 Now create `/etc/haproxy/haproxy.cfg` inside the `haproxy` container with the contents below. Use `lxc file push` or `lxc exec haproxy -- tee /etc/haproxy/haproxy.cfg <<'EOF'` to write it.
@@ -600,6 +623,10 @@ EOF
 # Push the file to the haproxy container
 lxc file push ~/haproxy.cfg haproxy/etc/haproxy/haproxy.cfg
 
+# Verify config was pushed correctly
+lxc exec haproxy -- wc -l /etc/haproxy/haproxy.cfg
+# Should show around 90+ lines
+
 # Verify and restart
 lxc exec haproxy -- cat /etc/haproxy/haproxy.cfg
 lxc exec haproxy -- haproxy -c -f /etc/haproxy/haproxy.cfg
@@ -665,7 +692,18 @@ bash
 sudo ss -tulpn | grep -E ':(80|443|8554|8089|8443|8404)'
 ```
 
-You should see the ports bound to 0.0.0.0 (all interfaces).
+You should see the ports bound to 0.0.0.0 (all interfaces)
+
+Troubleshooting tip:
+```
+# If port forwarding fails with "already in use" error:
+# Check if something else is listening:
+sudo ss -tulpn | grep ':80 '
+
+# If Apache or nginx is running on host, stop it:
+sudo systemctl stop apache2  # or nginx
+sudo systemctl disable apache2
+```
 
 ### 5.6 TLS / Let’s Encrypt strategy
 
@@ -690,6 +728,7 @@ Just remember to use `chmod +x` to make it executable.
 #### Prerequisites
 
 Download these files from https://tak.gov to your local Windows machine:
+* Note the version and release number in the file name and update where noted below.
 - `takserver_5.5-RELEASE58_all.deb` (or latest version)
 - `takserver-public-gpg.key`
 - `deb_policy.pol`
@@ -711,13 +750,19 @@ Using WinSCP, connect to your VPS as `takadmin` and upload all files to `/home/t
 From your SSH session on the VPS host:
 ```bash
 # Push all TAK files into the tak container
-lxc file push installTAK.sh tak/root/
+# Note: Script may be named 'installTAK' or 'installTAK.sh' - adjust accordingly
+lxc file push installTAK tak/root/        # If no extension
+# OR
+# lxc file push installTAK.sh tak/root/   # If you renamed it
+
+# (Make sure the tak server file name matches exactly your downloaded version)
+# takserver_[#.#]-RELEASE90[##]_all.deb
 lxc file push takserver_5.5-RELEASE58_all.deb tak/root/
 lxc file push takserver-public-gpg.key tak/root/
 lxc file push deb_policy.pol tak/root/
 
-# Make the installer executable
-lxc exec tak -- chmod +x /root/installTAK.sh
+# Make the installer executable (adjust filename if needed)
+lxc exec tak -- chmod +x /root/installTAK
 
 # Verify files are in place
 lxc exec tak -- ls -lh /root/
@@ -725,24 +770,30 @@ lxc exec tak -- ls -lh /root/
 
 #### Run the installer from inside the container to avoid path issues
 ```
-sudo lxc exec tak -- bash
-# Start the interactive installer
+# Enter the tak container
+lxc exec tak -- bash
+
+# Now you're inside the container - run these commands:
 cd /root
-./installTAK.sh takserver_5.5-RELEASE58_all.deb
+./installTAK takserver_5.5-RELEASE58_all.deb
+# (Make sure the tak server file name matches exactly your downloaded version)
+# takserver_[#.#]-RELEASE90[##]_all.deb
+
+# The installer will ask questions - answer them interactively
 ```
 
 The installer will prompt you for:
 
 1. **Platform selection** - Choose Ubuntu/Debian
 2. **Certificate details**:
-   - Country (US)
-   - State (Idaho)
-   - City (Boise)
-   - Organization (BoiseCounty)
-   - Organizational Unit (CCVFD)
-   - Change default Cert password from atakatak? (Yes) (hwy21hwy21)
-   - Name for Root CA (boisecountyroot)
-   - Intermediate CA (intermediateBC)
+   - Country
+   - State
+   - City
+   - Organization 
+   - Organizational Unit 
+   - Change default Cert password from atakatak?
+   - Name for Root CA 
+   - Intermediate CA 
 4. **Server FQDN** - Enter `tak.[DOMAIN.TLD]`
 5. **Let's Encrypt** - Choose YES to automatically get SSL certificates
    - Provide email for cert notifications
@@ -808,6 +859,22 @@ lxc exec web -- chown www-data:www-data /var/www/html/enroll/enrollmentDP.zip
 ```
 
 Add an index page with instructions for testers.
+```bash
+# Create a simple landing page
+lxc exec web -- bash -c 'cat > /var/www/html/index.html <<EOF
+<!DOCTYPE html>
+<html>
+<head><title>TAK Server - [DOMAIN.TLD]</title></head>
+<body>
+<h1>TAK Server Resources</h1>
+<ul>
+  <li><a href="/enroll/enrollmentDP.zip">Download ATAK Enrollment Package</a></li>
+  <li><a href="https://tak.[DOMAIN.TLD]:8443">TAK Server Web UI</a></li>
+</ul>
+</body>
+</html>
+EOF'
+```
 
 ### 5.10 Media container: MediaMTX (RTSP)
 
