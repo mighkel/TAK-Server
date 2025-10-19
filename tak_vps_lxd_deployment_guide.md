@@ -103,8 +103,14 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 
 ⚠️ **Common mistake:** Creating a new PuTTY session from scratch without setting the private key path under Connection → SSH → Auth → Private key file
 
-# Update & basic tools
+# Update OS and package repositories
 sudo apt update && sudo apt upgrade -y
+
+**Note:** You may see messages about:
+- "Newer kernel available" - This is informational; reboot at your convenience
+- "Daemons using outdated libraries" - Select the services shown (defaults are fine)
+
+# Install basic tools
 sudo apt install -y curl wget git unzip snapd ufw fail2ban
 
 # Create admin user (if not already created), add to sudo
