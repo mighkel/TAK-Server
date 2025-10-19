@@ -106,19 +106,6 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 # Update & basic tools
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl wget git unzip snapd ufw fail2ban
-sudo snap install lxd
-
-# Optional (Ensures the current user can run lxc without sudo.)
-sudo usermod -aG lxd $USER
-newgrp lxd
-# End of option
-
-sudo lxd init --auto
-
-# Optional sanity check
-newgrp lxd
-lxd version
-# Output around 5.x (e.g., 5.0.5 or newer) is normal for Ubuntu 22.04 LTS
 
 # Create admin user (if not already created), add to sudo
 sudo adduser takadmin
@@ -243,7 +230,7 @@ Notes:
 ### 5.2 Install and initialize LXD
 
 ```bash
-# Install LXD via snap (may already be installed)
+# Install LXD via snap (should already be installed)
 sudo snap install lxd
 
 # Add current user to lxd group
