@@ -255,7 +255,7 @@ sudo nano /etc/ufw/before.rules
 # NAT table rules for LXD containers
 *nat
 :POSTROUTING ACCEPT [0:0]
--A POSTROUTING -s 10.86.10.0/24 ! -d 10.86.10.0/24 -j MASQUERADE
+-A POSTROUTING -s 10.XXX.XXX.0/24 ! -d 10.XXX.XXX.0/24 -j MASQUERADE
 COMMIT
 
 # Then find the "# ok icmp codes for INPUT" section and add BEFORE it:
@@ -304,7 +304,7 @@ Look for the `lxdbr0` IPv4 address. Example output:
 | lxdbr0 | bridge | YES | 10.251.149.1/24 | ... |
 ```
 
-**Record the first three octets** (e.g., `10.251.149`). You'll use this throughout the guide.
+**Record the middle two octets** (e.g., `251.149` from `10.251.149.1`). You'll use this throughout the guide.
 
 💡 **Pro tip:** Copy all commands from sections 5.3.1, 5.3.2, and 5.5 into Notepad (or your text editor). Use Find & Replace:
 - Find: `XXX.XXX`
@@ -483,6 +483,13 @@ Note: For most deployments, you don't need SSH access inside containers since yo
 
 Install HAProxy in the haproxy container:
 ```bash
+# Enable universe repository for certbot
+lxc exec haproxy -- apt update
+lxc exec haproxy -- apt install -y software-properties-common
+lxc exec haproxy -- add-apt-repository universe -y
+lxc exec haproxy -- apt update
+
+# Install HAProxy and certbot
 lxc exec haproxy -- apt install -y haproxy certbot
 ```
 
