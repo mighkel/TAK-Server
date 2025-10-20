@@ -876,9 +876,16 @@ You'll distribute this ZIP file to ATAK users for easy connection to your TAK Se
 Install a simple web server for hosting documentation and mission packages:
 
 ```bash
+# Install Apache web server
 lxc exec web -- apt install -y apache2
+
+# Create directory for enrollment packages
+lxc exec web -- mkdir -p /var/www/html/enroll
+
 # Place enrollment packages into /var/www/html/enroll
 lxc file push enrollmentDP.zip web/var/www/html/enroll/enrollmentDP.zip
+
+# Set permissions
 lxc exec web -- chown www-data:www-data /var/www/html/enroll/enrollmentDP.zip
 ```
 
