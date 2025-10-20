@@ -873,56 +873,43 @@ You'll distribute this ZIP file to ATAK users for easy connection to your TAK Se
 
 ### 5.9 Web container (optional)
 
-Install a simple web server for hosting documentation and mission packages:
+Install a simple web server for hosting documentation and enrollment packages.
 
-⚠️ **Security Consideration:** Hosting enrollment packages on a public web server allows anyone to download them. While the packages are password-protected, consider these alternatives for production:
+#### Security Note on Public Enrollment Downloads
 
-**For Testing/Development:**
-- Public web download (covered below) is acceptable
+**For Testing/Lab Environments:**
+Hosting enrollment packages on a public web server is acceptable because:
+- TAK Server enforces strong password requirements (16+ characters, mixed case, numbers, special characters)
+- Packages are encrypted with user-specific passwords
+- Attackers would need the package AND crack a complex password AND have ATAK client
 
-**For Production:**
-- **Best:** Distribute packages directly via encrypted email/messaging
-- **Good:** Add HTTP Basic Auth to the `/enroll` directory (see below)
-- **Acceptable:** Use strong enrollment package passwords
+**For Production/High-Security Environments:**
+Consider these additional security measures:
+- **HTTP Basic Auth** - Add password protection to the `/enroll` directory
+- **Private Distribution** - Email packages directly via encrypted channels
+- **VPN Requirement** - Require VPN connection to access enrollment downloads
+- **One-Time Links** - Generate expiring download URLs per user
 
+**For streamlined user enrollment**, see Section 12 (Future: Automated Enrollment System)
+
+---
+
+#### Install Apache Web Server
 ```bash
-# Install Apache web server
 lxc exec web -- apt install -y apache2
 
 # Create directory for enrollment packages
 lxc exec web -- mkdir -p /var/www/html/enroll
 
-# Place enrollment packages into /var/www/html/enroll
-lxc file push enrollmentDP.zip web/var/www/html/enroll/enrollmentDP.zip
+# Place enrollment packages
+lxc file push ~/enrollmentDP.zip web/var/www/html/enroll/
 
 # Set permissions
-lxc exec web -- chown www-data:www-data /var/www/html/enroll/enrollmentDP.zip
+lxc exec web -- chown -R www-data:www-data /var/www/html/enroll
 ```
 
-**Optional: Add HTTP Basic Auth Protection**
+#### Create Landing Page
 ```bash
-# Protect enrollment directory with password
-lxc exec web -- apt install -y apache2-utils
-lxc exec web -- htpasswd -c /etc/apache2/.htpasswd [ADMIN_USER]
-# Enter password when prompted
-
-lxc exec web -- bash -c 'cat >> /etc/apache2/sites-available/000-default.conf <<EOF
-    <Directory /var/www/html/enroll>
-        AuthType Basic
-        AuthName "TAK Enrollment - Authentication Required"
-        AuthUserFile /etc/apache2/.htpasswd
-        Require valid-user
-    
-EOF'
-
-lxc exec web -- systemctl restart apache2
-```
-
-Now `/enroll/` will require username/password before allowing downloads.
-
-Add an index page with instructions for testers.
-```bash
-# Create a simple landing page
 lxc exec web -- bash -c 'cat > /var/www/html/index.html <<EOF
 <!DOCTYPE html>
 <html>
@@ -930,13 +917,54 @@ lxc exec web -- bash -c 'cat > /var/www/html/index.html <<EOF
 <body>
 <h1>TAK Server Resources</h1>
 <ul>
-  <li><a href="/enroll/enrollmentDP.zip">Download ATAK Enrollment Package</a></li>
+  <li><a href="/enroll/enrollmentDP.zip">Download Default ATAK Enrollment Package</a></li>
+  <li><a href="/enroll/webadmin.p12">Download Web Admin Certificate</a></li>
   <li><a href="https://tak.[DOMAIN.TLD]:8443">TAK Server Web UI</a></li>
 </ul>
+<p><strong>Note:</strong> Enrollment packages are password-protected. Contact your TAK administrator for credentials.</p>
 </body>
 </html>
 EOF'
 ```
+
+#### Optional: Add HTTP Basic Auth
+
+If you want an additional layer of security:
+```bash
+# Install auth tools
+lxc exec web -- apt install -y apache2-utils
+
+# Create password file
+lxc exec web -- htpasswd -c /etc/apache2/.htpasswd [ADMIN_USER]
+# Enter password when prompted
+
+# Protect enrollment directory
+lxc exec web -- bash -c 'cat > /etc/apache2/conf-available/enroll-auth.conf <<EOF
+<Directory /var/www/html/enroll>
+    AuthType Basic
+    AuthName "TAK Enrollment - Authentication Required"
+    AuthUserFile /etc/apache2/.htpasswd
+    Require valid-user
+</Directory>
+EOF'
+
+# Enable and restart
+lxc exec web -- a2enconf enroll-auth
+lxc exec web -- systemctl restart apache2
+```
+
+Now accessing `/enroll/` requires HTTP Basic Auth username/password before downloading files.
+
+#### Verify Web Server
+```bash
+# Test from host
+curl http://10.XXX.XXX.12/
+
+# Test from internet (if DNS configured)
+curl http://web.[DOMAIN.TLD]/
+```
+
+You should see your landing page HTML.
 
 ### 5.10 Media container: MediaMTX (RTSP)
 
@@ -1148,12 +1176,49 @@ systemctl reload haproxy
 
 ---
 
-If you want, I can now:
+## 12. Future Enhancements
 
-- Produce a ready-to-run **host bootstrap script** to perform the host hardening commands, LXD install, and create the 4 containers with initial snapshots (I’ll annotate it heavily for safety), **or**
-- Produce a **full haproxy.cfg** file (already included) tailored to the container IPs you have right now if you paste `lxc list` output.
+### 12.1 Automated User Enrollment System
 
-Tell me which next artifact you want and I will add it into the repo doc or produce it as a separate file.
+**Goal:** Streamline ATAK client onboarding with self-service enrollment
+
+**Planned Features:**
+- Web form for users to request enrollment
+- Automated certificate generation
+- Email delivery of enrollment packages
+- SMS notification option
+- User approval workflow for admins
+- One-time download links with expiration
+
+**Implementation:** TBD - Will add detailed guide when developed
+
+---
+
+### 12.2 Monitoring & Alerting Stack
+
+**Goal:** Proactive monitoring of TAK Server health
+
+**Planned Components:**
+- Prometheus + Grafana dashboards
+- Alert on service failures
+- Certificate expiration warnings
+- Disk space monitoring
+
+**Implementation:** TBD
+
+---
+
+### 12.3 High Availability Setup
+
+**Goal:** Redundant TAK Servers for 24/7 uptime
+
+**Planned Architecture:**
+- Multiple TAK server containers
+- Database replication
+- HAProxy load balancing
+- Automatic failover
+
+**Implementation:** TBD
 
 ---
 
