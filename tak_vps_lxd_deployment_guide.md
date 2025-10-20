@@ -246,6 +246,12 @@ sudo sed -i "s/^#*PermitRootLogin.*/PermitRootLogin no/" /etc/ssh/sshd_config
 sudo sed -i "s/^#*PasswordAuthentication.*/PasswordAuthentication no/" /etc/ssh/sshd_config
 sudo systemctl reload sshd
 
+# Test:  Try to login as root
+# You should get something like:
+# > login as: root
+# > Authenticating with public key ""
+# > Server refused public-key signature despite accepting key!
+
 # Configure UFW firewall
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
