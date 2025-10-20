@@ -252,48 +252,6 @@ sudo systemctl reload sshd
 # > Authenticating with public key ""
 # > Server refused public-key signature despite accepting key!
 
-# Configure UFW firewall
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw allow http
-sudo ufw allow https
-sudo ufw allow 8089/tcp
-sudo ufw allow 8443/tcp
-sudo ufw allow 8554/tcp
-echo "y" | sudo ufw enable
-
-# Configure UFW to allow container traffic
-sudo nano /etc/default/ufw
-# Change: DEFAULT_FORWARD_POLICY="ACCEPT"
-
-# *** MOVE THIS DOWN BELOW LXD INSTALL ***
-# *** WE DON'T HAVE BRIDGE SUBNET YET  ***
-# Edit UFW before rules
-sudo nano /etc/ufw/before.rules
-# Add NAT rules at the TOP (before *filter):
-
-# NAT table rules for LXD containers
-*nat
-:POSTROUTING ACCEPT [0:0]
--A POSTROUTING -s 10.XXX.XXX.0/24 ! -d 10.XXX.XXX.0/24 -j MASQUERADE
-COMMIT
-
-**Note:** Replace `XXX.XXX` with your bridge subnet from Section 5.2.1 (e.g., if your bridge is `10.251.149.1/24`, use `10.251.149.0/24`)
-
-# Then find the "# ok icmp codes for INPUT" section and add BEFORE it:
-
-# Allow all traffic from LXD containers
--A ufw-before-forward -i lxdbr0 -j ACCEPT
--A ufw-before-forward -o lxdbr0 -j ACCEPT
-
-# Reload UFW
-sudo ufw disable
-sudo ufw enable
-
-# Enable Fail2ban for basic SSH protection
-sudo systemctl enable --now fail2ban
-# Default jail protects SSH only; configuration file: /etc/fail2ban/jail.local
 ```
 
 Notes:
@@ -338,6 +296,49 @@ You'll replace `XXX.XXX` throughout this guide with these two numbers.
 - Replace with: Your middle two octets (e.g., `251.149`)
 
 Then copy/paste the customized commands back into your terminal.
+
+### 5.2.2 Configure UFW firewall and enable fail2ban
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw allow http
+sudo ufw allow https
+sudo ufw allow 8089/tcp
+sudo ufw allow 8443/tcp
+sudo ufw allow 8554/tcp
+echo "y" | sudo ufw enable
+
+# Configure UFW to allow container traffic
+sudo nano /etc/default/ufw
+# Change: DEFAULT_FORWARD_POLICY="ACCEPT"
+
+# Edit UFW before rules
+sudo nano /etc/ufw/before.rules
+# Add NAT rules at the TOP (before *filter):
+
+# NAT table rules for LXD containers
+*nat
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s 10.XXX.XXX.0/24 ! -d 10.XXX.XXX.0/24 -j MASQUERADE
+COMMIT
+
+**Note:** Replace `XXX.XXX` with your bridge subnet from Section 5.2.1 (e.g., if your bridge is `10.251.149.1/24`, use `10.251.149.0/24`)
+
+# Then find the "# ok icmp codes for INPUT" section and add BEFORE it:
+
+# Allow all traffic from LXD containers
+-A ufw-before-forward -i lxdbr0 -j ACCEPT
+-A ufw-before-forward -o lxdbr0 -j ACCEPT
+
+# Reload UFW
+sudo ufw disable
+sudo ufw enable
+
+# Enable Fail2ban for basic SSH protection
+sudo systemctl enable --now fail2ban
+# Default jail protects SSH only; configuration file: /etc/fail2ban/jail.local
+```
 
 ### 5.3 Create containers (Ubuntu 22.04 images)
 
