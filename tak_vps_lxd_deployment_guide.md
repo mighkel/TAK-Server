@@ -853,8 +853,9 @@ Cert files are located at `/opt/tak/certs/files/` inside the tak container. Enro
 # Pull enrollment package from tak container to host
 lxc file pull tak/opt/tak/certs/files/webadmin.p12
 lxc file pull tak/enrollmentDP.zip /home/takadmin/
+lxc file pull tak/enrollmentDP-QUIC.zip /home/takadmin/
 
-# Now use WinSCP to download enrollmentDP.zip from /home/takadmin/ to your Windows machine
+# Now use WinSCP to download enrollmentDP.zip, enrollmentDP-QUIC.zip, and webadmin.p12 from /home/takadmin/ to your Windows machine
 ```
 
 You'll distribute this ZIP file to ATAK users for easy connection to your TAK Server.
@@ -925,6 +926,7 @@ lxc exec web -- mkdir -p /var/www/html/enroll
 
 # Place enrollment packages
 lxc file push ~/enrollmentDP.zip web/var/www/html/enroll/
+lxc file push ~/enrollmentDP-QUIC.zip web/var/www/html/enroll/
 
 # Set permissions
 lxc exec web -- chown -R www-data:www-data /var/www/html/enroll
@@ -940,7 +942,7 @@ lxc exec web -- bash -c 'cat > /var/www/html/index.html <<EOF
 <h1>TAK Server Resources</h1>
 <ul>
   <li><a href="/enroll/enrollmentDP.zip">Download Default ATAK Enrollment Package</a></li>
-  <li><a href="/enroll/webadmin.p12">Download Web Admin Certificate</a></li>
+  <li><a href="/enroll/enrollmentDP-QUIC.zip">Download QUIC ATAK Data Package</a></li>
   <li><a href="https://tak.[DOMAIN.TLD]:8443">TAK Server Web UI</a></li>
 </ul>
 <p><strong>Note:</strong> Enrollment packages are password-protected. Contact your TAK administrator for credentials.</p>
