@@ -865,6 +865,28 @@ You'll distribute this ZIP file to ATAK users for easy connection to your TAK Se
 - If Let's Encrypt fails, the installer will create a local CA instead
 - Save the admin certificate password shown during installation
 
+#### Important: Secure Admin Certificate Handling
+
+**Do NOT host `webadmin.p12` on a public web server!**
+
+The `webadmin.p12` certificate provides full administrative access to TAK Server. Store it securely:
+```bash
+# Pull webadmin.p12 to host (already done)
+lxc file pull tak/root/webadmin.p12 ~/
+sudo chown takadmin:takadmin ~/webadmin.p12
+
+# Download via WinSCP to your local Windows machine
+# Store in a secure location (encrypted drive, password manager)
+```
+
+**Distribution to other admins:**
+- ✅ Encrypted messaging (Signal, ProtonMail)
+- ✅ Password-protected USB drive (in person)
+- ✅ Secure file share with encryption (Nextcloud)
+- ❌ NEVER via public web server
+- ❌ NEVER via unencrypted email
+- ❌ NEVER in public GitHub repos
+
 ### 5.8 Mission-package generation & onboarding
 
 `installTAK` will create enrollment ZIPs (`enrollmentDP.zip`) that contain `config.pref` and `caCert.p12` which users import into ATAK/WinTAK. Store these in the `web` container for secure download, or hand them out via secure transfer.
