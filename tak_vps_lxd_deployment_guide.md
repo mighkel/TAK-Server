@@ -875,6 +875,16 @@ You'll distribute this ZIP file to ATAK users for easy connection to your TAK Se
 
 Install a simple web server for hosting documentation and mission packages:
 
+⚠️ **Security Consideration:** Hosting enrollment packages on a public web server allows anyone to download them. While the packages are password-protected, consider these alternatives for production:
+
+**For Testing/Development:**
+- Public web download (covered below) is acceptable
+
+**For Production:**
+- **Best:** Distribute packages directly via encrypted email/messaging
+- **Good:** Add HTTP Basic Auth to the `/enroll` directory (see below)
+- **Acceptable:** Use strong enrollment package passwords
+
 ```bash
 # Install Apache web server
 lxc exec web -- apt install -y apache2
@@ -888,6 +898,27 @@ lxc file push enrollmentDP.zip web/var/www/html/enroll/enrollmentDP.zip
 # Set permissions
 lxc exec web -- chown www-data:www-data /var/www/html/enroll/enrollmentDP.zip
 ```
+
+**Optional: Add HTTP Basic Auth Protection**
+```bash
+# Protect enrollment directory with password
+lxc exec web -- apt install -y apache2-utils
+lxc exec web -- htpasswd -c /etc/apache2/.htpasswd [ADMIN_USER]
+# Enter password when prompted
+
+lxc exec web -- bash -c 'cat >> /etc/apache2/sites-available/000-default.conf <<EOF
+    <Directory /var/www/html/enroll>
+        AuthType Basic
+        AuthName "TAK Enrollment - Authentication Required"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require valid-user
+    
+EOF'
+
+lxc exec web -- systemctl restart apache2
+```
+
+Now `/enroll/` will require username/password before allowing downloads.
 
 Add an index page with instructions for testers.
 ```bash
