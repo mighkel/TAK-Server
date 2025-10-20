@@ -144,21 +144,26 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 ### 5.1 Host provisioning & hardening (Ubuntu 22.04)
 
 ```bash
-### 📝 PuTTY Connection Setup
+### SSH Key Authentication Setup
 
-**Option 1: Modify existing root connection**
-1. Load your existing root session in PuTTY
-2. Change "Host Name" from `root@your-vps-ip` to just `your-vps-ip`
-3. Connection → Data → Auto-login username: `takadmin`
-4. Connection → SSH → Auth → Private key file: Browse to your `.ppk` file
-5. Session → Save (give it a new name like "VPS-takadmin")
+**For detailed SSH key setup instructions specific to your VPS provider:**
+- **SSDNodes users:** [SSDNodes Host Setup & SSH Guide](https://github.com/mighkel/TAK-Server/blob/main/ssdnodes_host_setup_and_ssh.md)
+- **DigitalOcean users:** Coming soon
+- **AWS users:** Coming soon
+- **Google Cloud users:** Coming soon
 
-**Option 2: Login prompt method (simpler)**
-1. Use your existing root connection settings
-2. When PuTTY prompts "login as:", type `takadmin`
-3. Should login without password
+**Quick verification after SSH setup:**
+```bash
+# Test SSH login as takadmin (in new terminal)
+ssh takadmin@<your_vps_ip>
+# Should login without password prompt
 
-⚠️ **Common mistake:** Creating a new PuTTY session from scratch without setting the private key path under Connection → SSH → Auth → Private key file
+# Verify sudo access
+sudo whoami
+# Should output: root
+```
+
+If both work, continue to the next section.
 
 # Update OS and package repositories
 sudo apt update && sudo apt upgrade -y
