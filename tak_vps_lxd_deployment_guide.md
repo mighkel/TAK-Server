@@ -232,8 +232,13 @@ sudo chmod 600 /home/takadmin/.ssh/authorized_keys
 # Check for multiple locations in the file
 sudo nano /etc/ssh/sshd_config
 # Set:
-# PermitRootLogin no
-# PasswordAuthentication no
+# PermitRootLogin without password
+# to
+# PermitRootLogin *no
+# Set:
+# PasswordAuthentication yes
+# to
+# PasswordAuthentication *no
 sudo systemctl reload sshd
 
 # Alternatively (one-liners):
