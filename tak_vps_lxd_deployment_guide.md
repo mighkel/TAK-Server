@@ -656,6 +656,8 @@ lxc exec haproxy -- systemctl enable haproxy
 lxc exec haproxy -- systemctl status haproxy
 ```
 
+Enter `q` to quit the truncated lines if required
+
 Notes:
 - HAProxy is configured for TCP passthrough for TAK and RTSP. This lets TLS be terminated inside the TAK and Media containers (or you can terminate TLS in HAProxy; choose one).
 - If you prefer HAProxy to terminate TLS (recommended for central cert management), change `mode tcp` to `mode http` for HTTP frontends and add `bind *:443 ssl crt /etc/letsencrypt/live/domain/fullchain.pem` lines.
