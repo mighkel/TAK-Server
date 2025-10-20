@@ -848,10 +848,11 @@ Expected output should show Java processes listening on ports 8089 and 8443.
 
 #### Retrieve enrollment packages
 
-The enrollment packages are located at `/opt/tak/certs/files/` inside the tak container. Pull them to the host, then download via WinSCP:
+Cert files are located at `/opt/tak/certs/files/` inside the tak container. Enrollment is at root.  Pull them to the host, then download via WinSCP:
 ```bash
 # Pull enrollment package from tak container to host
-lxc file pull tak/opt/tak/certs/files/enrollmentDP.zip /home/takadmin/
+lxc file pull tak/opt/tak/certs/files/webadmin.p12
+lxc file pull tak/enrollmentDP.zip /home/takadmin/
 
 # Now use WinSCP to download enrollmentDP.zip from /home/takadmin/ to your Windows machine
 ```
