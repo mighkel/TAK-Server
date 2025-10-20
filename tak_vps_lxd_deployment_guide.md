@@ -151,6 +151,7 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 - **DigitalOcean users:** Coming soon
 - **AWS users:** Coming soon
 - **Google Cloud users:** Coming soon
+```
 
 **Quick verification after SSH setup:**
 ```bash
