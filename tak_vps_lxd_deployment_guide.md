@@ -146,26 +146,14 @@ Ports published on the host are NAT'd or forwarded to haproxy — haproxy routes
 ```bash
 ### SSH Key Authentication Setup
 
+**This guide assumes that you do have SHH access via PuTTY or another Linux machine.
 **For detailed SSH key setup instructions specific to your VPS provider:**
 - **SSDNodes users:** [SSDNodes Host Setup & SSH Guide](https://github.com/mighkel/TAK-Server/blob/main/ssdnodes_host_setup_and_ssh.md)
 - **DigitalOcean users:** Coming soon
 - **AWS users:** Coming soon
 - **Google Cloud users:** Coming soon
-```
 
-**Quick verification after SSH setup:**
-```bash
-# Test SSH login as takadmin (in new terminal)
-ssh takadmin@<your_vps_ip>
-# Should login without password prompt
 
-# Verify sudo access
-sudo whoami
-# Should output: root
-```
-
-If both work, continue to the next section.
-```
 # Update OS and package repositories
 sudo apt update && sudo apt upgrade -y
 
