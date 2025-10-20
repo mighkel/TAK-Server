@@ -165,7 +165,7 @@ sudo whoami
 ```
 
 If both work, continue to the next section.
-
+```
 # Update OS and package repositories
 sudo apt update && sudo apt upgrade -y
 
