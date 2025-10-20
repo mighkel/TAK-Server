@@ -267,6 +267,8 @@ echo "y" | sudo ufw enable
 sudo nano /etc/default/ufw
 # Change: DEFAULT_FORWARD_POLICY="ACCEPT"
 
+# *** MOVE THIS DOWN BELOW LXD INSTALL ***
+# *** WE DON'T HAVE BRIDGE SUBNET YET  ***
 # Edit UFW before rules
 sudo nano /etc/ufw/before.rules
 # Add NAT rules at the TOP (before *filter):
