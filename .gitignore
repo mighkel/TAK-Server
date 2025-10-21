@@ -1,0 +1,4 @@
+# Log files - never commit these
+LOGS/
+*.log
+*.txt
