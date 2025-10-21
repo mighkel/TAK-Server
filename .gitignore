@@ -2,3 +2,6 @@
 LOGS/
 *.log
 *.txt
+*.conf
+*.xml
+certs/
