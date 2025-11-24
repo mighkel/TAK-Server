@@ -434,6 +434,8 @@ lxc snapshot haproxy post-config-$(date +%F)
 lxc snapshot tak post-install-$(date +%F)
 lxc snapshot web initial-$(date +%F)
 lxc snapshot rtsptak post-mediamtx-$(date +%F)
+
+lxc restore {container} {snapshot−name}
 ```
 
 ---
